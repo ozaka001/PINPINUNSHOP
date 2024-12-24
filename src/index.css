@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Responsive breakpoints */
+@layer utilities {
+  .container {
+    @apply max-w-7xl mx-auto;
+  }
+
+  /* Mobile first approach */
+  @media (max-width: 640px) {
+    .container {
+      @apply px-4;
+    }
+  }
+
+  /* Tablet */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .container {
+      @apply px-6;
+    }
+  }
+
+  /* Desktop */
+  @media (min-width: 1025px) {
+    .container {
+      @apply px-8;
+    }
+  }
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}

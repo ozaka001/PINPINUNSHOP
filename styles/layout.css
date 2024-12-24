@@ -1,0 +1,63 @@
+/* Header */
+.header {
+  padding: 20px 0;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 20px;
+}
+
+/* Main content */
+.main-content {
+  padding: 40px 0;
+}
+
+.grid-layout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+/* Footer */
+.footer {
+  padding: 40px 0;
+}
+
+/* Tablet Adjustments */
+@media screen and (max-width: 1024px) {
+  .grid-layout {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  /* ปรับเมนูให้กระชับขึ้น */
+  .nav-menu {
+    gap: 15px;
+  }
+}
+
+/* Mobile Adjustments */
+@media screen and (max-width: 767px) {
+  /* ปรับเมนูเป็นแบบ hamburger */
+  .nav-menu {
+    display: none; /* ซ่อนเมนูปกติ */
+  }
+
+  .mobile-menu-button {
+    display: block; /* แสดงปุ่ม hamburger */
+  }
+
+  /* ปรับ grid เป็นแนวตั้ง */
+  .grid-layout {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  /* ลดขนาด padding */
+  .header,
+  .main-content,
+  .footer {
+    padding: 20px 0;
+  }
+}

@@ -15,30 +15,27 @@ RUN npm install
 # Copy project files
 COPY . .
 
-# Build frontend
+# Build both frontend and backend
 RUN npm run build
+RUN npx tsc
 
 # Production stage
 FROM node:18-alpine as production
 
 WORKDIR /app
 
-# Install build dependencies for native modules
+# Install production dependencies
 RUN apk add --no-cache python3 make g++
 
-# Copy package files and install dependencies including tsx
+# Copy package files and install production dependencies
 COPY package*.json ./
-RUN npm install
-RUN npm install -g tsx
+RUN npm install --production
 
-# Copy source files and built frontend
+# Copy built files
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/src ./src
-COPY --from=build /app/tsconfig.json ./
-COPY --from=build /app/node_modules ./node_modules
 
 # Expose port
 EXPOSE 5000
 
-# Start the server using tsx
-CMD ["tsx", "src/server/server.ts"]
+# Start the server using Node.js
+CMD ["node", "dist/server/server.js"]

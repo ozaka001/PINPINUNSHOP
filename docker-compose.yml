@@ -15,6 +15,8 @@ services:
       - REALM_SKIP_BSON_VALIDATION=1
       - PYTHON=/usr/bin/python3
       - NODE_GYP_FORCE_PYTHON=/usr/bin/python3
+      - CC=gcc
+      - CXX=g++
     volumes:
       - .:/app
       - /app/node_modules

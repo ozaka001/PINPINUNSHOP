@@ -6,12 +6,14 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache python3 make g++ git
 
+# Install node-gyp globally
+RUN npm install -g node-gyp
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies and rebuild realm
+# Install dependencies
 RUN npm install
-RUN cd node_modules/realm && npm rebuild
 
 # Copy project files
 COPY . .
@@ -21,21 +23,20 @@ RUN npm run build
 RUN npx tsc
 
 # Production stage
-FROM node:18-alpine as production
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Install production dependencies
+# Install build dependencies
 RUN apk add --no-cache python3 make g++
 
-# Copy package files and install production dependencies
-COPY package*.json ./
-RUN npm install --production
-RUN cd node_modules/realm && npm rebuild
+# Install node-gyp globally
+RUN npm install -g node-gyp
 
-# Copy built files and native modules
+# Copy package files and built files
+COPY package*.json ./
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules/realm/prebuilds ./node_modules/realm/prebuilds
 
 # Expose port
 EXPOSE 5000

@@ -18,7 +18,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       totalRevenue: 0,
       recentOrders: [],
       salesData: [],
-      visitorData: []
+      visitorData: [],
+      increases: {
+        orders: 0,
+        products: 0,
+        users: 0,
+        revenue: 0
+      }
     };
   }
 }

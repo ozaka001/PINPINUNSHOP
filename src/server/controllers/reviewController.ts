@@ -1,17 +1,17 @@
 import { Request, Response } from 'express';
 import Realm from 'realm';
 import { ObjectId } from 'bson';
-import { IReview } from '../models/Review';
+import { IReview } from '../models/Review.js';
 
 export const createReview = async (req: Request, res: Response) => {
   const { userId, productId, rating, comment } = req.body;
 
   try {
     const realm = await Realm.open({
-      schema: [require('../models/Review').default]
+      schema: [require('../models/Review.js').default]
     });
 
-    let review: IReview;
+    let review: IReview | null = null;
 
     realm.write(() => {
       review = realm.create('Review', {
@@ -24,6 +24,10 @@ export const createReview = async (req: Request, res: Response) => {
         updatedAt: new Date()
       });
     });
+
+    if (!review) {
+      throw new Error('Failed to create review');
+    }
 
     res.status(201).json({
       success: true,
@@ -43,7 +47,7 @@ export const getProductReviews = async (req: Request, res: Response) => {
 
   try {
     const realm = await Realm.open({
-      schema: [require('../models/Review').default]
+      schema: [require('../models/Review.js').default]
     });
 
     const reviews = realm.objects('Review').filtered('productId == $0', productId);
@@ -66,7 +70,7 @@ export const getUserReviews = async (req: Request, res: Response) => {
 
   try {
     const realm = await Realm.open({
-      schema: [require('../models/Review').default]
+      schema: [require('../models/Review.js').default]
     });
 
     const reviews = realm.objects('Review').filtered('userId == $0', userId);
@@ -90,7 +94,7 @@ export const updateReview = async (req: Request, res: Response) => {
 
   try {
     const realm = await Realm.open({
-      schema: [require('../models/Review').default]
+      schema: [require('../models/Review.js').default]
     });
 
     realm.write(() => {
@@ -120,7 +124,7 @@ export const deleteReview = async (req: Request, res: Response) => {
 
   try {
     const realm = await Realm.open({
-      schema: [require('../models/Review').default]
+      schema: [require('../models/Review.js').default]
     });
 
     realm.write(() => {

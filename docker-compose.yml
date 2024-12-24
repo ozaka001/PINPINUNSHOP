@@ -2,12 +2,17 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    build: 
+      context: .
+      target: production
     ports:
-      - "5000:5000"
+      - "5000:5000"  # Backend port
+      - "5173:5173"  # Frontend port
     environment:
       - NODE_ENV=production
       - VITE_API_BASE_URL=http://localhost:5000/api
     volumes:
-      - ./uploads:/app/uploads
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
     restart: unless-stopped

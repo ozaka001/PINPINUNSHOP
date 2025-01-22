@@ -36,7 +36,8 @@ router.get('/public', async (req, res) => {
       description: brand.description || ''
     }));
 
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+    // Set CORS headers for public routes
+    res.setHeader('Access-Control-Allow-Origin', ['https://pinpinunshop.netlify.app', process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : ''].filter(Boolean).join(', '));
     res.setHeader('Access-Control-Allow-Methods', 'GET');
     res.json(formattedBrands);
   } catch (error) {

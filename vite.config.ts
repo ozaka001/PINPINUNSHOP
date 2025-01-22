@@ -12,14 +12,6 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['realm']
   },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
-      }
-    }
-  },
   build: {
     rollupOptions: {
       external: [/^\/server\//]

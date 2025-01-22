@@ -23,20 +23,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const port = 5000;
+const port = parseInt(process.env.PORT || '5000', 10);
 let server: any = null;
 
 // Configure CORS
 const corsOptions = {
-  origin: 'http://localhost:5173',
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  origin: ['https://pinpinunshop.netlify.app', 'http://localhost:5173'],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  preflightContinue: false,
   optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
 
 // Function to find an available port
 const findAvailablePort = async (startPort: number): Promise<number> => {

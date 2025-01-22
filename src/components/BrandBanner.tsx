@@ -17,11 +17,12 @@ export function BrandBanner() {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/brands/public', {
+        const API_URL = import.meta.env.VITE_API_BASE_URL;
+        const response = await fetch(`${API_URL}/brands/public`, {
           method: 'GET',
           headers: {
-            'Accept': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
         
         if (!response.ok) {

@@ -10,8 +10,6 @@ const api = axios.create({
     'Accept': 'application/json',
   },
   withCredentials: true,
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 // Add a request interceptor
@@ -29,12 +27,16 @@ api.interceptors.request.use(
         console.error('Error parsing user data:', error);
       }
     }
-    // Add CORS headers
-    config.headers['Access-Control-Allow-Origin'] = 'https://pinpinunshop.netlify.app';
-    config.headers['Access-Control-Allow-Credentials'] = 'true';
+
+    // Ensure proper CORS headers
+    if (config.headers) {
+      config.headers['X-Requested-With'] = 'XMLHttpRequest';
+    }
+
     return config;
   },
   (error) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );

@@ -103,15 +103,25 @@ export const userService = {
 
   async uploadProfilePicture(id: string, file: File): Promise<string> {
     try {
-      const formData = new FormData();
-      formData.append('profilePicture', file);
-
-      const response = await api.post(`/users/${id}/profile-picture`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64String = reader.result as string;
+            const response = await api.post(`/users/${id}/profile-picture`, {
+              imageBase64: base64String
+            });
+            resolve(response.data.imageProfile);
+          } catch (error) {
+            console.error('Error uploading profile picture:', error);
+            reject(error);
+          }
+        };
+        reader.onerror = () => {
+          reject(new Error('Failed to read file'));
+        };
+        reader.readAsDataURL(file);
       });
-      return response.data.imageUrl;
     } catch (error) {
       console.error('Error uploading profile picture:', error);
       throw error;

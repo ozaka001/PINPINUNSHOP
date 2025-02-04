@@ -132,18 +132,18 @@ export async function getUserByUsername(req: Request, res: Response) {
 
 export const uploadProfilePicture = async (req: Request, res: Response) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
     const userId = req.params.id;
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const { imageBase64 } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'No image data provided' });
+    }
 
     const realm = await ensureInitialized();
     realm.write(() => {
       const user = realm.objectForPrimaryKey<UserSchemaType>('User', userId);
       if (user) {
-        user.imageProfile = imageUrl;
+        user.imageProfile = imageBase64;
       } else {
         throw new Error('User not found');
       }
@@ -151,7 +151,7 @@ export const uploadProfilePicture = async (req: Request, res: Response) => {
 
     res.json({ 
       message: 'Profile picture updated successfully',
-      imageUrl
+      imageProfile: imageBase64
     });
   } catch (error) {
     console.error('Error uploading profile picture:', error);

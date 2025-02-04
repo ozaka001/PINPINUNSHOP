@@ -70,16 +70,46 @@ export const OrderItemSchema = {
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const orderData = JSON.parse(req.body.orderData) as OrderCreate;
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+
+    let orderData: OrderCreate;
+    
+    try {
+      // Handle both FormData and JSON requests
+      if (typeof req.body.orderData === 'string') {
+        orderData = JSON.parse(req.body.orderData);
+      } else if (req.body.orderData) {
+        orderData = req.body.orderData;
+      } else {
+        orderData = req.body;
+      }
+      
+      console.log('Parsed order data:', orderData);
+    } catch (error) {
+      console.error('Error parsing order data:', error);
+      return res.status(400).json({ message: 'Invalid order data format' });
+    }
+
     const { userId, totalAmount, shippingDetails, items, paymentMethod } = orderData;
-    const slipImage = req.file; // รับไฟล์รูปภาพจาก multer
+    const slipImage = req.file;
 
     // Validate required fields first
     if (!userId || !totalAmount || !shippingDetails || !items || !paymentMethod) {
-      return res.status(400).json({ message: 'Missing required fields' });
+      console.error('Missing required fields:', { userId, totalAmount, shippingDetails, items, paymentMethod });
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        details: {
+          hasUserId: !!userId,
+          hasTotalAmount: !!totalAmount,
+          hasShippingDetails: !!shippingDetails,
+          hasItems: !!items,
+          hasPaymentMethod: !!paymentMethod
+        }
+      });
     }
 
-    // ตรวจสอบว่าถ้าเป็นการโอนเงิน ต้องมีรูปสลิป
+    // Only validate slip for bank transfer
     if (paymentMethod === 'bank_transfer' && !slipImage) {
       return res.status(400).json({ message: 'Slip image is required for bank transfer' });
     }

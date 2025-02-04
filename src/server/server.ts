@@ -16,6 +16,7 @@ import brandRoutes from './routes/brandRoutes.js';
 import dashboardRoutes from './routes/dashboard.js';
 import productTypeRoutes from './routes/productTypeRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import systemRoutes from './routes/systemRoutes.js';
 import { initializeDatabase } from './database/db.js';
 import net from 'net';
 
@@ -99,6 +100,7 @@ async function startServer() {
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/product-types', productTypeRoutes);
     app.use('/api/reviews', reviewRoutes);
+    app.use('/api/system', systemRoutes);
 
     // Error handling middleware
     app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -23,6 +23,7 @@ interface UserFormData {
   city?: string;
   postalCode?: string;
   password?: string;
+  imageProfile?: string;
 }
 
 export function UserDetailsModal({ user, isOpen, onClose, onSave, onUserUpdated }: UserDetailsModalProps) {
@@ -35,7 +36,8 @@ export function UserDetailsModal({ user, isOpen, onClose, onSave, onUserUpdated 
     phone: user?.phone || '',
     address: user?.address || '',
     city: user?.city || '',
-    postalCode: user?.postalCode || ''
+    postalCode: user?.postalCode || '',
+    imageProfile: user?.imageProfile || ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,6 +49,21 @@ export function UserDetailsModal({ user, isOpen, onClose, onSave, onUserUpdated 
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setFormData(prev => ({
+          ...prev,
+          imageProfile: base64String
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -208,6 +225,28 @@ export function UserDetailsModal({ user, isOpen, onClose, onSave, onUserUpdated 
               onChange={handleChange}
               className="w-full px-3 py-2 mt-1 border rounded-md"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Profile Image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="mt-1 block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-violet-50 file:text-violet-700
+                hover:file:bg-violet-100"
+            />
+            {formData.imageProfile && (
+              <img 
+                src={formData.imageProfile} 
+                alt="Profile Preview" 
+                className="mt-2 w-20 h-20 object-cover rounded-full"
+              />
+            )}
           </div>
 
           <div className="flex justify-end gap-2">

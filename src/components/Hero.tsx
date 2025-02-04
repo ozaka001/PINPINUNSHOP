@@ -4,22 +4,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Hero images with their content
 const slides = [
   {
-    image: "https://images.unsplash.com/photo-1445205170230-053b83016050",
+    image: "../../uploads/images/Banner 1.jpg",
     title: "Summer Collection 2024",
     description: "Discover the latest trends in fashion and explore our new collection.",
     buttonText: "Shop Now",
   },
   {
-    image: "https://images.unsplash.com/photo-1469334031218-e382a71b716b",
+    image: "../../uploads/images/Banner 2.jpg",
     title: "Spring Essentials",
     description: "Refresh your wardrobe with our curated selection of spring must-haves.",
     buttonText: "Explore More",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1483985988355-763728e1935b",
-    title: "New Arrivals",
-    description: "Be the first to shop our latest arrivals and trending styles.",
-    buttonText: "View Collection",
   },
 ];
 

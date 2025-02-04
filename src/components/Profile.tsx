@@ -42,6 +42,12 @@ export function Profile() {
               postalCode: userData.postalCode || '',
               imageProfile: userData.imageProfile || '',
             });
+            // Update user context with the fetched data
+            login({
+              ...user,
+              ...userData,
+              token: user.token || ''
+            }, true); // Use true for rememberMe to maintain existing session
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -108,7 +114,7 @@ export function Profile() {
           ...user,
           ...formData,
           token: user.token || '' // Ensuring token is a string
-        });
+        }, true); // Use true for rememberMe to maintain existing session
         setIsEditing(false);
         toast.success('Profile updated successfully');
       }
@@ -166,27 +172,26 @@ export function Profile() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file && user?.id) {
       try {
-        // Show loading state
-        toast.info('Please wait while we upload your profile picture');
-
         const uploadedImageUrl = await userService.uploadProfilePicture(user.id, file);
         
-        // Update formData with the new image URL
+        // Update local form data with the new image
         setFormData(prev => ({
           ...prev,
           imageProfile: uploadedImageUrl
         }));
 
-        // Update user context with the new image URL
-        login({
-          ...user,
-          imageProfile: uploadedImageUrl,
-          token: user.token || '' // Provide a default empty string if token is undefined
-        });
+        // Update user context with the new image
+        if (user) {
+          login({
+            ...user,
+            imageProfile: uploadedImageUrl,
+            token: user.token || ''
+          }, true); // Use true for rememberMe to maintain existing session
+        }
 
         toast.success('Profile picture updated successfully');
       } catch (error) {

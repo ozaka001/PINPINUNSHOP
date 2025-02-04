@@ -441,22 +441,43 @@ const OrderManagement = () => {
             </div>
             
             <div className="p-4">
-              {/* Payment Slip */}
+              {/* Payment Method */}
               <div className="mb-6">
-                <h4 className="font-semibold mb-2">Payment Slip</h4>
-                {selectedOrder.slipUrl ? (
-                  <div className="flex justify-center">
-                    <img 
-                      src={selectedOrder.slipUrl} 
-                      alt="Payment Slip" 
-                      className="max-w-full h-auto rounded-lg shadow-lg"
-                      style={{ maxHeight: '400px' }}
-                    />
-                  </div>
-                ) : (
-                  <p className="text-gray-500 italic">No payment slip uploaded</p>
-                )}
+                <h4 className="font-semibold mb-2">Payment Method</h4>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  {(() => {
+                    switch (selectedOrder.paymentMethod) {
+                      case 'credit_card':
+                        return 'บัตรเครดิต/เดบิต';
+                      case 'bank_transfer':
+                        return 'โอนผ่านธนาคาร';
+                      case 'cod':
+                        return 'ชำระเงินปลายทาง';
+                      default:
+                        return selectedOrder.paymentMethod;
+                    }
+                  })()}
+                </div>
               </div>
+
+              {/* Payment Slip - only show if payment method is bank transfer */}
+              {selectedOrder.paymentMethod === 'bank_transfer' && (
+                <div className="mb-6">
+                  <h4 className="font-semibold mb-2">สลิปการชำระเงิน</h4>
+                  {selectedOrder.slipUrl ? (
+                    <div className="flex justify-center">
+                      <img 
+                        src={selectedOrder.slipUrl} 
+                        alt="Payment Slip" 
+                        className="max-w-full h-auto rounded-lg shadow-lg"
+                        style={{ maxHeight: '400px' }}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 italic">ยังไม่มีการอัพโหลดสลิป</p>
+                  )}
+                </div>
+              )}
 
               {/* Order Status Management */}
               <div className="mb-6">

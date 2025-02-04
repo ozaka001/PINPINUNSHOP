@@ -23,7 +23,23 @@ const upload = multer({
 router.use(authenticateToken);
 
 // Create new order with slip image
-router.post('/', upload.single('slip'), createOrder);
+router.post('/', upload.single('slip'), async (req, res, next) => {
+  try {
+    // For COD orders, no slip is required
+    if (req.body.paymentMethod === 'cod') {
+      return createOrder(req, res);
+    }
+    
+    // For other payment methods, require slip
+    if (!req.file && req.body.paymentMethod !== 'cod') {
+      return res.status(400).json({ error: 'Slip image is required for non-COD orders' });
+    }
+    
+    createOrder(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Get all orders (or filter by userId if provided)
 router.get('/', getOrders);

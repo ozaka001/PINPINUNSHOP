@@ -28,7 +28,7 @@ interface OrderCreate {
     price: number;
     selectedColor?: string;
   }[];
-  paymentMethod: 'credit_card' | 'bank_transfer';
+  paymentMethod: 'credit_card' | 'bank_transfer' | 'cod';
   status: 'pending';
   slipUrl?: string;
 }
@@ -49,7 +49,7 @@ export function Checkout() {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('shipping');
   const [shippingDetails, setShippingDetails] = useState<ShippingDetails>(initialShippingDetails);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'credit_card' | 'bank_transfer'>('credit_card');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'credit_card' | 'bank_transfer' | 'cod'>('credit_card');
   const [loading, setLoading] = useState(true);
   const [slipImage, setSlipImage] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -111,23 +111,36 @@ export function Checkout() {
         status: 'pending' as const
       };
 
-      // Send the order data
-      const formData = new FormData();
-      formData.append('orderData', JSON.stringify(orderData));
+      let response;
+      
       if (selectedPaymentMethod === 'bank_transfer' && slipImage) {
+        // For bank transfer with slip
+        const formData = new FormData();
+        formData.append('orderData', JSON.stringify(orderData));
         formData.append('slip', slipImage);
+        
+        response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/orders`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+          },
+          body: formData
+        });
+      } else {
+        // For credit card and COD
+        response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/orders`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderData) // Send orderData directly without wrapping
+        });
       }
-
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/orders`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
-        body: formData
-      });
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Server error response:', errorData);
         throw new Error(errorData.message || 'Failed to create order');
       }
 
@@ -278,11 +291,11 @@ export function Checkout() {
                     <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                       <input
                         type="radio"
-                        name="payment"
+                        name="paymentMethod"
                         value="credit_card"
                         checked={selectedPaymentMethod === 'credit_card'}
                         onChange={(e) => setSelectedPaymentMethod('credit_card')}
-                        className="mr-3"
+                        className="form-radio"
                       />
                       <CreditCard className="w-6 h-6 mr-3" />
                       <div>
@@ -294,11 +307,11 @@ export function Checkout() {
                     <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                       <input
                         type="radio"
-                        name="payment"
+                        name="paymentMethod"
                         value="bank_transfer"
                         checked={selectedPaymentMethod === 'bank_transfer'}
                         onChange={(e) => setSelectedPaymentMethod('bank_transfer')}
-                        className="mr-3"
+                        className="form-radio"
                       />
                       <Landmark className="w-6 h-6 mr-3" />
                       <div>
@@ -306,41 +319,23 @@ export function Checkout() {
                         <p className="text-sm text-gray-500">ธนาคารกรุงเทพ, ไทยพาณิชย์, กสิกร</p>
                       </div>
                     </label>
-                  </div>
 
-                  {selectedPaymentMethod === 'credit_card' && (
-                    <div className="space-y-4">
+                    <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={selectedPaymentMethod === 'cod'}
+                        onChange={(e) => setSelectedPaymentMethod('cod')}
+                        className="form-radio"
+                      />
+                      <CheckCircle2 className="w-6 h-6 mr-3" />
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">หมายเลขบัตร</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="1234 5678 9012 3456"
-                          className="w-full px-4 py-2 border rounded-lg"
-                        />
+                        <p className="font-medium">ชำระเงินปลายทาง</p>
+                        <p className="text-sm text-gray-500">ชำระเงินเมื่อได้รับสินค้า</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">วันหมดอายุ</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="MM/YY"
-                            className="w-full px-4 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">CVV</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="123"
-                            className="w-full px-4 py-2 border rounded-lg"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    </label>
+                  </div>
 
                   {selectedPaymentMethod === 'bank_transfer' && (
                     <div className="space-y-4">

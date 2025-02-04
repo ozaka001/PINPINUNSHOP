@@ -31,7 +31,7 @@ export interface Order {
   totalAmount: number;
   shippingDetails: ShippingDetails;
   items: OrderItem[];
-  paymentMethod: 'credit_card' | 'bank_transfer';
+  paymentMethod: 'credit_card' | 'bank_transfer' | 'cod';
   status?: string;
   slipUrl?: string;
   createdAt: Date;
@@ -48,7 +48,7 @@ export interface OrderCreate {
     price: number;
     selectedColor?: string;
   }>;
-  paymentMethod: 'credit_card' | 'bank_transfer';
+  paymentMethod: 'credit_card' | 'bank_transfer' | 'cod';
   slipUrl?: string;
 }
 

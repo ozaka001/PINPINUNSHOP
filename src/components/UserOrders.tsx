@@ -25,6 +25,19 @@ const statusLabels: Record<OrderStatus, string> = {
   completed: 'สำเร็จ'
 };
 
+const getPaymentMethodLabel = (method: string) => {
+  switch (method) {
+    case 'credit_card':
+      return 'บัตรเครดิต';
+    case 'bank_transfer':
+      return 'โอนผ่านธนาคาร';
+    case 'cod':
+      return 'ชำระเงินปลายทาง';
+    default:
+      return method;
+  }
+};
+
 export function UserOrders() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -300,6 +313,8 @@ export function UserOrders() {
               <div className="text-right">
                 <p className="text-sm text-gray-500">ยอดรวมทั้งหมด</p>
                 <p className="text-lg font-semibold text-gray-900">{formatPrice(order.totalAmount)}</p>
+                <p className="text-sm text-gray-500">วิธีการชำระเงิน</p>
+                <p className="text-lg font-semibold text-gray-900">{getPaymentMethodLabel(order.paymentMethod)}</p>
               </div>
             </div>
 
@@ -317,7 +332,7 @@ export function UserOrders() {
                   <div className="space-y-2">
                     <h4 className="font-medium text-gray-900">วิธีการชำระเงิน</h4>
                     <div className="p-4 bg-white rounded-lg border border-gray-200">
-                      <p className="text-gray-600">{order.paymentMethod}</p>
+                      <p className="text-gray-600">{getPaymentMethodLabel(order.paymentMethod)}</p>
                     </div>
                   </div>
                 </div>

@@ -2,8 +2,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User } from '../types.js';
 
 interface AuthContextType {
-  user: User | null;
-  login: (userData: User & { token: string }) => void;
+  user: (User & { token?: string }) | null;
+  login: (user: User & { token: string }, rememberMe: boolean) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -11,46 +11,70 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Check localStorage for existing user data on mount
+function AuthProviderComponent({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<(User & { token?: string }) | null>(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        return JSON.parse(storedUser);
+      } catch {
+        localStorage.removeItem('user');
+        return null;
+      }
     }
-  }, []);
+    return null;
+  });
 
-  const login = (userData: User & { token: string }) => {
+  const login = (userData: User & { token: string }, rememberMe: boolean) => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    if (rememberMe) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    } else {
+      sessionStorage.setItem('user', JSON.stringify(userData));
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
   };
 
-  const isAdmin = user?.role === 'admin';
+  // Check session storage on mount
+  useEffect(() => {
+    if (!user) {
+      const sessionUser = sessionStorage.getItem('user');
+      if (sessionUser) {
+        try {
+          setUser(JSON.parse(sessionUser));
+        } catch {
+          sessionStorage.removeItem('user');
+        }
+      }
+    }
+  }, [user]);
+
+  const value = {
+    user,
+    login,
+    logout,
+    isAuthenticated: !!user?.token,
+    isAdmin: user?.role === 'admin'
+  };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      isAuthenticated: !!user,
-      isAdmin
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
+export const AuthProvider = AuthProviderComponent;
+
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

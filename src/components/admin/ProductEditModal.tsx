@@ -464,7 +464,6 @@ export function ProductEditModal({
                       value={formData.brand}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border rounded-lg"
-                      required
                     >
                       <option value="">Select Brand</option>
                       {brands.map((brand) => (

@@ -20,6 +20,35 @@ router.use(async (req, res, next) => {
   }
 });
 
+// Main brands endpoint
+router.get('/', async (req, res) => {
+  try {
+    const realm = await ensureInitialized();
+    if (!realm) {
+      throw new Error('Database not initialized');
+    }
+    
+    const brands = realm.objects<BrandSchemaType>('Brand');
+    console.log('Raw brands from database:', JSON.stringify(Array.from(brands)));
+    
+    const formattedBrands = Array.from(brands).map(brand => ({
+      id: brand.id,
+      name: brand.name,
+      slug: brand.slug,
+      logo: brand.logo || '',
+      description: brand.description || '',
+      created_at: brand.created_at,
+      updated_at: brand.updated_at
+    }));
+
+    console.log('Formatted brands:', JSON.stringify(formattedBrands));
+    res.json(formattedBrands);
+  } catch (error) {
+    console.error('Error fetching brands:', error);
+    res.status(500).json({ error: 'Failed to fetch brands' });
+  }
+});
+
 // Public route for fetching brands
 router.get('/public', async (req, res) => {
   try {
@@ -30,15 +59,27 @@ router.get('/public', async (req, res) => {
 
     const brands = realm.objects<BrandSchemaType>('Brand');
     const formattedBrands = Array.from(brands).map(brand => ({
-      _id: brand.id,
+      id: brand.id,
       name: brand.name,
+      slug: brand.slug,
       logo: brand.logo || '',
-      description: brand.description || ''
+      description: brand.description || '',
+      created_at: brand.created_at,
+      updated_at: brand.updated_at
     }));
 
-    // Set CORS headers for public routes
-    res.setHeader('Access-Control-Allow-Origin', ['https://pinpinunshop.netlify.app', process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : ''].filter(Boolean).join(', '));
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    // Unified CORS configuration
+    const allowedOrigins = [
+      'https://pinpinunshop.netlify.app',
+      ...(process.env.NODE_ENV === 'development' ? ['http://localhost:5173'] : [])
+    ];
+
+    if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     res.json(formattedBrands);
   } catch (error) {
     console.error('Error fetching brands:', error);
@@ -58,6 +99,8 @@ router.post('/', async (req, res) => {
     }
 
     const { name, description, logo } = req.body;
+    console.log('Received brand data:', req.body);
+    
     if (!name) {
       return res.status(400).json({ error: 'Brand name is required' });
     }
@@ -66,18 +109,35 @@ router.post('/', async (req, res) => {
     const now = new Date().toISOString();
     const brandId = uuidv4();
 
+    const brandData = {
+      id: brandId,
+      name,
+      slug,
+      description,
+      logo,
+      created_at: now,
+      updated_at: now
+    };
+    console.log('Creating brand with data:', brandData);
+
     realm.write(() => {
-      realm.create('Brand', {
-        id: brandId,
-        name,
-        slug,
-        description,
-        logo,
-        created_at: now,
-        updated_at: now
-      });
+      realm.create<BrandSchemaType>('Brand', brandData);
     });
 
+    console.log('Brand created successfully');
+
+    // Unified CORS configuration
+    const allowedOrigins = [
+      'https://pinpinunshop.netlify.app',
+      ...(process.env.NODE_ENV === 'development' ? ['http://localhost:5173'] : [])
+    ];
+
+    if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     res.status(201).json({ 
       message: 'Brand created successfully',
       brand: {
@@ -126,6 +186,18 @@ router.put('/:id', async (req, res) => {
       brand.updated_at = now;
     });
     
+    // Unified CORS configuration
+    const allowedOrigins = [
+      'https://pinpinunshop.netlify.app',
+      ...(process.env.NODE_ENV === 'development' ? ['http://localhost:5173'] : [])
+    ];
+
+    if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     res.json({ 
       message: 'Brand updated successfully',
       brand: {
@@ -156,23 +228,27 @@ router.delete('/:id', async (req, res) => {
     }
 
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: 'Brand ID is required' });
+    }
+
+    console.log('Attempting to delete brand with ID:', id);
+    const brand = realm.objectForPrimaryKey<BrandSchemaType>('Brand', id);
     
-    const brand = realm.objectForPrimaryKey('Brand', id);
     if (!brand) {
+      console.log('Brand not found with ID:', id);
       return res.status(404).json({ error: 'Brand not found' });
     }
-    
+
     realm.write(() => {
       realm.delete(brand);
     });
-    
+
+    console.log('Brand deleted successfully');
     res.json({ message: 'Brand deleted successfully' });
   } catch (error) {
     console.error('Error deleting brand:', error);
-    res.status(500).json({ 
-      error: 'Failed to delete brand',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    res.status(500).json({ error: 'Failed to delete brand' });
   }
 });
 

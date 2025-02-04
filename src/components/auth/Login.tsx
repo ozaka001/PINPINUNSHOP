@@ -9,6 +9,7 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -19,8 +20,8 @@ export function Login() {
     try {
       const user = await userService.login(email, password);
       if (user) {
-        login(user);
-        navigate('/');
+        login(user, rememberMe);
+        navigate('/', { replace: true });
       } else {
         setError('Invalid email or password');
       }
@@ -103,6 +104,8 @@ export function Login() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">

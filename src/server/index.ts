@@ -12,6 +12,7 @@ import brandRoutes from './routes/brandRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import productTypeRoutes from './routes/productTypes.js';
+import systemRoutes from './routes/systemRoutes.js';
 
 const app = express();
 const DEFAULT_PORT = 5000;
@@ -58,6 +59,15 @@ async function startServer() {
     app.use('/api/categories', categoryRoutes);
     app.use('/api/messages', messageRoutes);
     app.use('/api/product-types', productTypeRoutes);
+    
+    console.log('Mounting system routes at /api/system');
+    app.use('/api/system', systemRoutes);
+
+    // Add middleware to log all incoming requests
+    app.use((req, res, next) => {
+      console.log(`${req.method} ${req.path}`);
+      next();
+    });
 
     // Health check endpoint
     app.get('/api/health', async (req, res) => {

@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
-console.log('API_URL:', API_URL); // For debugging
 
 const api = axios.create({
   baseURL: API_URL,
@@ -15,8 +14,11 @@ const api = axios.create({
 // Add a request interceptor
 api.interceptors.request.use(
   (config) => {
-    console.log('Making request to:', config.url); // For debugging
-    const user = localStorage.getItem('user');
+    // Try to get user from both storage types
+    const localUser = localStorage.getItem('user');
+    const sessionUser = sessionStorage.getItem('user');
+    const user = localUser || sessionUser;
+
     if (user) {
       try {
         const userData = JSON.parse(user);
@@ -25,18 +27,15 @@ api.interceptors.request.use(
         }
       } catch (error) {
         console.error('Error parsing user data:', error);
+        // Clean up invalid data
+        if (localUser) localStorage.removeItem('user');
+        if (sessionUser) sessionStorage.removeItem('user');
       }
-    }
-
-    // Ensure proper CORS headers
-    if (config.headers) {
-      config.headers['X-Requested-With'] = 'XMLHttpRequest';
     }
 
     return config;
   },
   (error) => {
-    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -44,18 +43,13 @@ api.interceptors.request.use(
 // Add a response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('Response received:', response.status); // For debugging
     return response;
   },
   (error) => {
-    console.error('API Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-    
     if (error.response?.status === 401) {
+      // Clear both storages on unauthorized
       localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

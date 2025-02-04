@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import api from '../../services/api.js';
 import toast from '../../services/toast.js';
@@ -13,23 +13,32 @@ interface Brand {
   updated_at: string;
 }
 
+interface FormDataType {
+  name: string;
+  description: string;
+  logo: string;
+  slug?: string;
+}
+
 export default function BrandManagement() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataType>({
     name: '',
     description: '',
-    logo: ''
+    logo: '',
+    slug: ''
   });
 
   // Fetch brands from API
   const fetchBrands = async () => {
     try {
-      const response = await api.get('/brands');
+      const response = await api.get<Brand[]>('/brands');
+      console.log('Fetched brands:', response.data);
       setBrands(response.data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching brands:', error);
       toast.error('Failed to fetch brands');
     }
@@ -39,15 +48,52 @@ export default function BrandManagement() {
     fetchBrands();
   }, []);
 
+  // Generate slug from name
+  const generateSlug = (name: string) => {
+    return name.toLowerCase().replace(/\s+/g, '-');
+  };
+
+  // Handle name change and auto-generate slug
+  const handleNameChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const name = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      name,
+      slug: generateSlug(name)
+    }));
+  };
+
+  // Handle form input changes
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   // Create new brand
   const handleCreate = async () => {
     try {
-      await api.post('/brands', formData);
+      const now = new Date().toISOString();
+      const brandData = {
+        name: formData.name,
+        description: formData.description,
+        logo: formData.logo,
+        slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+        created_at: now,
+        updated_at: now
+      };
+      
+      console.log('Creating brand with data:', brandData);
+      const response = await api.post<Brand>('/brands', brandData);
+      console.log('Created brand response:', response.data);
+      
       setIsModalOpen(false);
-      setFormData({ name: '', description: '', logo: '' });
+      setFormData({ name: '', description: '', logo: '', slug: '' });
       fetchBrands(); // Refresh the list
       toast.success('Brand created successfully');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating brand:', error);
       toast.error('Failed to create brand');
     }
@@ -57,13 +103,25 @@ export default function BrandManagement() {
   const handleUpdate = async () => {
     if (!selectedBrand) return;
     try {
-      await api.put(`/brands/${selectedBrand.id}`, formData);
+      const now = new Date().toISOString();
+      const brandData = {
+        name: formData.name,
+        description: formData.description,
+        logo: formData.logo,
+        slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+        updated_at: now
+      };
+      
+      console.log('Updating brand with data:', brandData);
+      const response = await api.put<Brand>(`/brands/${selectedBrand.id}`, brandData);
+      console.log('Updated brand response:', response.data);
+      
       setIsModalOpen(false);
       setSelectedBrand(null);
-      setFormData({ name: '', description: '', logo: '' });
+      setFormData({ name: '', description: '', logo: '', slug: '' });
       fetchBrands(); // Refresh the list
       toast.success('Brand updated successfully');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating brand:', error);
       toast.error('Failed to update brand');
     }
@@ -71,19 +129,36 @@ export default function BrandManagement() {
 
   // Delete brand
   const handleDelete = async (brandId: string) => {
-    if (!window.confirm('Are you sure you want to delete this brand?')) return;
+    if (!brandId) {
+      console.error('Cannot delete brand: brandId is undefined');
+      toast.error('Cannot delete brand: Invalid ID');
+      return;
+    }
+    
     try {
+      console.log('Deleting brand with ID:', brandId);
       await api.delete(`/brands/${brandId}`);
-      fetchBrands(); // Refresh the list
       toast.success('Brand deleted successfully');
-    } catch (error) {
+      fetchBrands(); // Refresh the list
+    } catch (error: unknown) {
       console.error('Error deleting brand:', error);
       toast.error('Failed to delete brand');
     }
   };
 
+  // Format date for display
+  const formatDate = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return new Intl.DateTimeFormat('en-GB').format(date); // DD/MM/YYYY
+    } catch (error) {
+      console.error('Invalid date format:', timestamp);
+      return 'N/A';
+    }
+  };
+
   // Filter brands based on search query
-  const filteredBrands = brands.filter(brand =>
+  const filteredBrands = brands.filter((brand: Brand) =>
     brand.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (brand.description?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
@@ -94,7 +169,8 @@ export default function BrandManagement() {
     setFormData({
       name: brand.name,
       description: brand.description || '',
-      logo: brand.logo || ''
+      logo: brand.logo || '',
+      slug: brand.slug
     });
     setIsModalOpen(true);
   };
@@ -102,7 +178,7 @@ export default function BrandManagement() {
   // Open modal for adding new brand
   const handleAdd = () => {
     setSelectedBrand(null);
-    setFormData({ name: '', description: '', logo: '' });
+    setFormData({ name: '', description: '', logo: '', slug: '' });
     setIsModalOpen(true);
   };
 
@@ -139,64 +215,57 @@ export default function BrandManagement() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Brand</th>
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Name</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Slug</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Logo</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Description</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Created At</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Updated At</th>
                 <th className="px-6 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredBrands.map((brand) => (
-                <tr key={brand.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {brand.logo && (
-                        <img
-                          src={brand.logo}
-                          alt={brand.name}
-                          className="w-8 h-8 object-contain"
-                        />
-                      )}
-                      <span className="font-medium">{brand.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{brand.slug}</td>
-                  <td className="px-6 py-4 text-gray-500">{brand.description}</td>
-                  <td className="px-6 py-4 text-gray-500">{brand.created_at}</td>
-                  <td className="px-6 py-4 text-gray-500">{brand.updated_at}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => handleEdit(brand)}
-                        className="p-2 hover:bg-gray-100 rounded-lg"
-                      >
-                        <Edit className="w-4 h-4 text-gray-500" />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(brand.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </button>
-                    </div>
+            <tbody>
+              {filteredBrands.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12">
+                    <h3 className="text-lg font-medium text-gray-900">No brands found</h3>
+                    <p className="mt-2 text-gray-500">
+                      Create a new brand to get started.
+                    </p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredBrands.map((brand) => (
+                  <tr key={brand.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">{brand.name}</td>
+                    <td className="px-6 py-4 text-gray-500">{brand.slug}</td>
+                    <td className="px-6 py-4">{brand.logo && <img src={brand.logo} alt={brand.name} className="h-12 w-12 object-cover" />}</td>
+                    <td className="px-6 py-4 text-gray-500">{brand.description}</td>
+                    <td className="px-6 py-4 text-gray-500">{formatDate(brand.created_at)}</td>
+                    <td className="px-6 py-4 text-gray-500">{formatDate(brand.updated_at)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(brand)}
+                          className="p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <Edit className="w-4 h-4 text-gray-500" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(brand.id)}
+                          className="p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-
-        {filteredBrands.length === 0 && (
-          <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900">No brands found</h3>
-            <p className="mt-2 text-gray-500">
-              Create a new brand to get started.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Brand Modal */}
@@ -215,7 +284,7 @@ export default function BrandManagement() {
               </button>
             </div>
 
-            <form onSubmit={(e) => {
+            <form onSubmit={(e: FormEvent<HTMLFormElement>) => {
               e.preventDefault();
               selectedBrand ? handleUpdate() : handleCreate();
             }} className="space-y-4">
@@ -225,10 +294,25 @@ export default function BrandManagement() {
                 </label>
                 <input
                   type="text"
+                  name="name"
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={handleNameChange}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Slug
+                </label>
+                <input
+                  type="text"
+                  name="slug"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formData.slug}
+                  onChange={handleInputChange}
                 />
               </div>
 
@@ -237,10 +321,11 @@ export default function BrandManagement() {
                   Description
                 </label>
                 <textarea
+                  name="description"
+                  rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
+                  onChange={handleInputChange}
                 />
               </div>
 
@@ -250,9 +335,10 @@ export default function BrandManagement() {
                 </label>
                 <input
                   type="url"
+                  name="logo"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.logo}
-                  onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                  onChange={handleInputChange}
                   placeholder="https://example.com/logo.png"
                 />
               </div>
@@ -263,7 +349,7 @@ export default function BrandManagement() {
                   onClick={() => {
                     setIsModalOpen(false);
                     setSelectedBrand(null);
-                    setFormData({ name: '', description: '', logo: '' });
+                    setFormData({ name: '', description: '', logo: '', slug: '' });
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >

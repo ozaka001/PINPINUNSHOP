@@ -1,5 +1,8 @@
 import { Save } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useState } from 'react';
+import api from '../../services/api.js';
+import toast from '../../services/toast.js';
 
 interface SettingsForm {
   storeName: string;
@@ -38,6 +41,25 @@ export function Settings() {
     e.preventDefault();
     // In a real app, this would save to your backend
     console.log('Saving settings:', settings);
+  };
+
+  const handleExportDatabase = async () => {
+    try {
+      const response = await api.get('/system/export-database', {
+        responseType: 'blob',
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `pinpinunshop-backup-${Date.now()}.realm`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export database');
+    }
   };
 
   return (
@@ -212,6 +234,13 @@ export function Settings() {
           >
             <Save className="w-4 h-4" />
             Save Changes
+          </button>
+          <button
+            onClick={handleExportDatabase}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Download className="w-5 h-5" />
+            Export Database Backup
           </button>
         </div>
       </form>

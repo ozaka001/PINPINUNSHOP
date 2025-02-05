@@ -1,21 +1,22 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { slides } from '../data/slides.js';
 
 // Hero images with their content
-const slides = [
-  {
-    image: "../../uploads/images/Banner 1.jpg",
-    title: "Summer Collection 2024",
-    description: "Discover the latest trends in fashion and explore our new collection.",
-    buttonText: "Shop Now",
-  },
-  {
-    image: "../../uploads/images/Banner 2.jpg",
-    title: "Spring Essentials",
-    description: "Refresh your wardrobe with our curated selection of spring must-haves.",
-    buttonText: "Explore More",
-  },
-];
+// const slides = [
+//   {
+//     image: "data:image/jpg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAUFBQUFBQUGBgUICAcICAsKCQkKCxEMDQwNDBEP/2Q==",
+//     title: "Summer Collection 2024",
+//     description: "Discover the latest trends in fashion and explore our new collection.",
+//     buttonText: "Shop Now",
+//   },
+//   {
+//     image: "data:image/jpg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAUFBQUFBQUGBgUICAcICAsKCQkKCxEMDQwNDBEP/2Q==",
+//     title: "Spring Essentials",
+//     description: "Refresh your wardrobe with our curated selection of spring must-haves.",
+//     buttonText: "Explore More",
+//   },
+// ];
 
 export function Hero() {
   const [current, setCurrent] = useState(0);
@@ -77,9 +78,9 @@ export function Hero() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation Dots */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {slides.map((_, index) => (
+      {/* Navigation dots */}
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
+        {slides.map((_slide: any, index: number) => (
           <button
             key={index}
             onClick={() => setCurrent(index)}

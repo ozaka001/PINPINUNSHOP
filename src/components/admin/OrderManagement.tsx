@@ -275,7 +275,7 @@ const OrderManagement = () => {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="font-semibold mb-2">Total Revenue</h3>
-          <p className="text-2xl">${orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}</p>
+          <p className="text-2xl">฿{orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="font-semibold mb-2">Pending Orders</h3>

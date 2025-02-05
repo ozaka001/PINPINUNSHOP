@@ -11,6 +11,10 @@ interface DashboardOrder {
   shippingAddress: string;
   paymentMethod: string;
   createdAt: string;
+  shippingDetails: {
+    firstName: string;
+    lastName: string;
+  };
 }
 
 interface RecentOrder {

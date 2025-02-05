@@ -49,40 +49,6 @@ export function SaleProducts() {
   const productsPerPage = 12;
 
   useEffect(() => {
-    // Fetch categories from the API
-    const fetchCategories = async () => {
-      try {
-        console.log('Fetching categories for sale products...');
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch categories: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Categories data:', data);
-        
-        if (Array.isArray(data)) {
-          const categoriesWithCount = data.map((category: any) => ({
-            name: category.name,
-            count: 0 // We'll update this after products are loaded
-          }));
-          setCategories([{ name: "All Sale Items", count: 0 }, ...categoriesWithCount]);
-        } else {
-          console.error('Invalid categories data format:', data);
-          setCategories([{ name: "All Sale Items", count: 0 }]);
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        setCategories([{ name: "All Sale Items", count: 0 }]);
-      }
-    };
-
-    fetchCategories();
-  }, []); // Remove products dependency
-
-  // Update category counts when products change
-  useEffect(() => {
     if (categories.length > 0 && products.length > 0) {
       const updatedCategories = categories.map(category => {
         if (category.name === "All Sale Items") {
@@ -90,13 +56,13 @@ export function SaleProducts() {
         }
         return {
           ...category,
-          count: products.filter(p => p.category === category.name && p.salePrice > 0).length
+          count: products.filter((p: Product) => p.category === category.name && p.salePrice > 0).length
         };
       }).filter(category => category.name === "All Sale Items" || category.count > 0);
 
       setCategories(updatedCategories);
     }
-  }, [products, categories]);
+  }, [products]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -125,10 +91,29 @@ export function SaleProducts() {
           }));
 
         setProducts(saleProducts);
+        
+        // Fetch and set categories after products are loaded
+        const categoriesResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`);
+        if (!categoriesResponse.ok) {
+          throw new Error(`Failed to fetch categories: ${categoriesResponse.status}`);
+        }
+        const categoriesData = await categoriesResponse.json();
+        
+        if (Array.isArray(categoriesData)) {
+          const categoriesWithCount = categoriesData.map((category: any) => ({
+            name: category.name,
+            count: saleProducts.filter((p: Product) => p.category === category.name && p.salePrice > 0).length
+          }));
+          setCategories([{ name: "All Sale Items", count: saleProducts.length }, ...categoriesWithCount]);
+        } else {
+          console.error('Invalid categories data format:', categoriesData);
+          setCategories([{ name: "All Sale Items", count: saleProducts.length }]);
+        }
+        
         setError(null);
       } catch (error) {
-        console.error('Error fetching products:', error);
-        setError('Failed to fetch products. Please try again later.');
+        console.error('Error fetching data:', error);
+        setError('Failed to fetch data. Please try again later.');
       } finally {
         setLoading(false);
       }

@@ -23,6 +23,10 @@ interface DashboardOrder {
   shippingAddress: string;
   paymentMethod: string;
   createdAt: string;
+  shippingDetails: {
+    firstName: string;
+    lastName: string;
+  }
 }
 
 interface DashboardStats {
@@ -222,7 +226,7 @@ export default function Dashboard() {
                 {stats.recentOrders.map((order) => (
                   <tr key={order.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{order.customerName}</div>
+                      <div className="text-sm font-medium text-gray-900">{order.shippingDetails.firstName} {order.shippingDetails.lastName}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{formatPrice(order.totalAmount)}</div>

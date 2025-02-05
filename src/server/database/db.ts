@@ -5,13 +5,13 @@ if (typeof window !== "undefined") {
   );
 }
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import path from 'path';
-import fs from 'fs';
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import path from "path";
+import fs from "fs";
 import Realm from "realm";
 import { ObjectId } from "bson";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import type {
   User,
   Product,
@@ -36,23 +36,23 @@ import {
   ShippingDetailsSchema,
   MessageSchema, // Import MessageSchema
   VisitorSchema, // Import VisitorSchema
-  ReviewSchema // Import ReviewSchema
-} from './realmSchema.js';
+  ReviewSchema, // Import ReviewSchema
+} from "./realmSchema.js";
 import bcrypt from "bcrypt";
-import slugify from 'slugify';
-import { RealmOrderItem } from './schemas.js'; // Import RealmOrderItem
+import slugify from "slugify";
+import { RealmOrderItem } from "./schemas.js"; // Import RealmOrderItem
 
 let realm: Realm | null = null;
 let initializationPromise: Promise<Realm> | null = null;
 let isClosing = false;
 
 // Add cleanup handler for graceful shutdown
-process.on('SIGINT', async () => {
+process.on("SIGINT", async () => {
   await cleanup();
   process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
+process.on("SIGTERM", async () => {
   await cleanup();
   process.exit(0);
 });
@@ -60,25 +60,27 @@ process.on('SIGTERM', async () => {
 async function cleanup() {
   isClosing = true;
   if (realm && !realm.isClosed) {
-    console.log('Closing Realm instance...');
+    console.log("Closing Realm instance...");
     realm.close();
   }
 }
 
 async function initRealm(): Promise<Realm> {
   try {
-    console.log('Initializing Realm...');
+    console.log("Initializing Realm...");
     if (realm) {
       if (realm.isClosed || isClosing) {
-        console.log('Existing Realm instance is closed or closing, creating new instance');
+        console.log(
+          "Existing Realm instance is closed or closing, creating new instance"
+        );
         realm = null;
       } else {
-        console.log('Using existing Realm instance');
+        console.log("Using existing Realm instance");
         return realm;
       }
     }
 
-    console.log('Opening new Realm instance...');
+    console.log("Opening new Realm instance...");
     const newRealm = await Realm.open({
       schema: [
         UserSchema,
@@ -94,17 +96,19 @@ async function initRealm(): Promise<Realm> {
         ShippingDetailsSchema,
         MessageSchema,
         VisitorSchema,
-        ReviewSchema
+        ReviewSchema,
       ],
-      path: 'shenshopper.realm',
+      path: "shenshopper.realm",
       schemaVersion: 1,
       onMigration: (oldRealm, newRealm) => {
-        console.log('Running migration...');
-        const oldOrders = oldRealm.objects('Order');
-        const newOrders = newRealm.objects('Order');
+        console.log("Running migration...");
+        const oldOrders = oldRealm.objects("Order");
+        const newOrders = newRealm.objects("Order");
 
-        for(let i = 0; i < oldOrders.length; i++) {
-          const oldOrder = oldOrders[i] as unknown as { items?: Realm.List<any> };
+        for (let i = 0; i < oldOrders.length; i++) {
+          const oldOrder = oldOrders[i] as unknown as {
+            items?: Realm.List<any>;
+          };
           const newOrder = newOrders[i] as any;
 
           if (!newOrder.items) {
@@ -112,14 +116,16 @@ async function initRealm(): Promise<Realm> {
           }
 
           if (oldOrder.items) {
-            const itemsArray = oldOrder.items.toJSON ? oldOrder.items.toJSON() : Array.prototype.slice.call(oldOrder.items);
+            const itemsArray = oldOrder.items.toJSON
+              ? oldOrder.items.toJSON()
+              : Array.prototype.slice.call(oldOrder.items);
             for (const item of itemsArray) {
               newOrder.items.push(item);
             }
           }
         }
-        console.log('Migration completed successfully');
-      }
+        console.log("Migration completed successfully");
+      },
     });
 
     // Only set the global realm if another initialization hasn't happened
@@ -130,10 +136,10 @@ async function initRealm(): Promise<Realm> {
       newRealm.close();
     }
 
-    console.log('Realm initialized successfully');
+    console.log("Realm initialized successfully");
     return realm || newRealm;
   } catch (error) {
-    console.error('Error initializing Realm:', error);
+    console.error("Error initializing Realm:", error);
     realm = null;
     throw error;
   }
@@ -147,11 +153,11 @@ async function ensureInitialized(): Promise<Realm> {
   while (retryCount < maxRetries) {
     try {
       if (isClosing) {
-        throw new Error('Database is shutting down');
+        throw new Error("Database is shutting down");
       }
 
       if (!realm || realm.isClosed) {
-        console.log('Realm not initialized or closed, initializing...');
+        console.log("Realm not initialized or closed, initializing...");
         if (!initializationPromise) {
           console.log("Starting new Realm initialization...");
           initializationPromise = initRealm();
@@ -169,26 +175,33 @@ async function ensureInitialized(): Promise<Realm> {
 
       // Verify the instance is still valid
       if (!realm || realm.isClosed || isClosing) {
-        throw new Error('Realm instance is invalid or closing');
+        throw new Error("Realm instance is invalid or closing");
       }
 
       return realm;
     } catch (error) {
       lastError = error as Error;
-      console.error(`Realm initialization attempt ${retryCount + 1} failed:`, error);
+      console.error(
+        `Realm initialization attempt ${retryCount + 1} failed:`,
+        error
+      );
       retryCount++;
-      
+
       if (retryCount === maxRetries) {
-        console.error('All retry attempts failed');
+        console.error("All retry attempts failed");
         throw lastError;
       }
-      
+
       // Wait before retrying with exponential backoff
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.pow(2, retryCount) * 1000)
+      );
     }
   }
-  
-  throw lastError || new Error('Failed to initialize Realm after maximum retries');
+
+  throw (
+    lastError || new Error("Failed to initialize Realm after maximum retries")
+  );
 }
 
 // Create admin user if it doesn't exist
@@ -196,28 +209,30 @@ async function createAdminIfNotExists() {
   try {
     const realmInstance = await ensureInitialized();
     if (!realmInstance) {
-      throw new Error('Failed to get Realm instance');
+      throw new Error("Failed to get Realm instance");
     }
 
-    const adminUser = realmInstance.objects('User').filtered('role = "admin"')[0];
+    const adminUser = realmInstance
+      .objects("User")
+      .filtered('role = "admin"')[0];
     if (!adminUser) {
       realmInstance.write(() => {
-        realmInstance.create('User', {
+        realmInstance.create("User", {
           id: new ObjectId().toString(),
-          username: 'admin',
-          password: bcrypt.hashSync('admin123', 10),
-          email: 'admin@example.com',
-          role: 'admin',
-          firstName: 'Admin',
-          lastName: 'User',
+          username: "admin",
+          password: bcrypt.hashSync("admin123", 10),
+          email: "admin@example.com",
+          role: "admin",
+          firstName: "Admin",
+          lastName: "User",
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
       });
-      console.log('Admin user created successfully');
+      console.log("Admin user created successfully");
     }
   } catch (error) {
-    console.error('Error creating/updating admin user:', error);
+    console.error("Error creating/updating admin user:", error);
     // Don't throw the error as this is not critical for system operation
   }
 }
@@ -231,17 +246,17 @@ export async function initializeDatabase() {
   }
 
   try {
-    console.log('Starting server-side Realm initialization...');
+    console.log("Starting server-side Realm initialization...");
     const realmInstance = await ensureInitialized();
     if (!realmInstance) {
-      throw new Error('Failed to initialize Realm');
+      throw new Error("Failed to initialize Realm");
     }
 
     await createAdminIfNotExists();
     initializationComplete = true;
-    console.log('Realm database initialized successfully');
+    console.log("Realm database initialized successfully");
   } catch (error) {
-    console.error('Failed to initialize database:', error);
+    console.error("Failed to initialize database:", error);
     throw error;
   }
 }
@@ -262,18 +277,18 @@ async function getAllUsers(
     }
 
     console.log("Fetching all users from Realm...");
-    const users = realm.objects("User").sorted('username');
+    const users = realm.objects("User").sorted("username");
     console.log(`Found ${users.length} users`);
 
     // Convert Realm objects to plain objects and map them
-    const allUsers = Array.from(users).map(user => mapRealmUserToUser(user));
+    const allUsers = Array.from(users).map((user) => mapRealmUserToUser(user));
     const startIndex = (page - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     const paginatedUsers = allUsers.slice(startIndex, endIndex);
 
     return {
       users: paginatedUsers,
-      total: allUsers.length
+      total: allUsers.length,
     };
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -432,7 +447,7 @@ async function createUser(userData: UserCreate): Promise<DBUser> {
       ...userData,
       role: userData.role || "user", // Set default role if not provided
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     realm.write(() => {
@@ -760,13 +775,15 @@ async function createProduct(
       stock: Number(productData.stock),
       salePrice: productData.salePrice ? Number(productData.salePrice) : null,
       category: productData.category.trim(),
-      type: productData.type?.trim() || '',
-      brand: productData.brand?.trim() || '',
+      type: productData.type?.trim() || "",
+      brand: productData.brand?.trim() || "",
       colors: Array.isArray(productData.colors) ? productData.colors : [],
       image: productData.image,
-      additionalImages: Array.isArray(productData.additionalImages) ? productData.additionalImages : [],
+      additionalImages: Array.isArray(productData.additionalImages)
+        ? productData.additionalImages
+        : [],
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     console.log("Formatted product data:", newProduct);
@@ -797,7 +814,7 @@ async function createProduct(
       image: createdProduct.image,
       additionalImages: createdProduct.additionalImages,
       created_at: createdProduct.created_at,
-      updated_at: createdProduct.updated_at
+      updated_at: createdProduct.updated_at,
     };
   } catch (error) {
     console.error("Error creating product:", error);
@@ -843,7 +860,7 @@ async function updateProduct(
       created_at: string;
       updated_at: string;
     }>("Product", id);
-    
+
     if (!product) return false;
 
     realm.write(() => {
@@ -886,28 +903,21 @@ async function updateProduct(
 
 async function deleteProduct(id: string): Promise<boolean> {
   try {
-    if (!realm) {
-      console.log("Attempting to initialize Realm before deleting product...");
-      await initRealm();
-    }
+    const realm = await ensureInitialized();
+    if (!realm) return false;
 
-    if (!realm) {
-      throw new Error("Realm database is not initialized");
-    }
-
-    console.log("Deleting product from Realm...");
+    // Find the product using string id directly
     const product = realm.objectForPrimaryKey("Product", id);
-    if (!product) return false;
+    if (!product) {
+      console.log(`Product not found with id: ${id}`);
+      return false;
+    }
 
     realm.write(() => {
-      if (!realm) {
-        throw new Error("Database not initialized");
-      }
-      console.log("Deleting product from Realm...");
       realm!.delete(product);
     });
 
-    console.log("Product deleted successfully");
+    console.log(`Successfully deleted product with id: ${id}`);
     return true;
   } catch (error) {
     console.error("Error deleting product:", error);
@@ -954,7 +964,7 @@ async function getProductById(id: string): Promise<Product | null> {
       created_at: string;
       updated_at: string;
     }>("Product", id);
-    
+
     console.log(`Found product with ID ${id}: ${!!product}`);
     if (!product) return null;
 
@@ -962,7 +972,7 @@ async function getProductById(id: string): Promise<Product | null> {
     const additionalImages = Array.from(product.additionalImages || []);
     const colors = Array.from(product.colors || []);
 
-    console.log('Additional Images from DB:', additionalImages);
+    console.log("Additional Images from DB:", additionalImages);
 
     return {
       id: String(product.id),
@@ -1110,37 +1120,41 @@ async function getCart(userId: string): Promise<any> {
     await ensureInitialized();
     if (!realm) throw new Error("Database not initialized");
 
-    const cart = realm.objects<Cart>("Cart").filtered("userId == $0", userId)[0] as unknown as Cart;
+    const cart = realm
+      .objects<Cart>("Cart")
+      .filtered("userId == $0", userId)[0] as unknown as Cart;
     if (!cart) {
-      throw new Error('Cart not found for user: ' + userId);
+      throw new Error("Cart not found for user: " + userId);
     }
 
     // Convert Realm objects to plain objects and include product details
-    const items = Array.from(cart.items || []).map((item: CartItem) => {
-      const product = realm!.objectForPrimaryKey("Product", item.productId);
-      if (!product) {
-        console.warn(`Product not found for cart item: ${item.productId}`);
-        return null;
-      }
-      return {
-        id: item._id,
-        product: {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-        },
-        quantity: item.quantity,
-        selectedColor: item.selectedColor,
-      };
-    }).filter(Boolean); // Remove null items
+    const items = Array.from(cart.items || [])
+      .map((item: CartItem) => {
+        const product = realm!.objectForPrimaryKey("Product", item.productId);
+        if (!product) {
+          console.warn(`Product not found for cart item: ${item.productId}`);
+          return null;
+        }
+        return {
+          id: item._id,
+          product: {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+          },
+          quantity: item.quantity,
+          selectedColor: item.selectedColor,
+        };
+      })
+      .filter(Boolean); // Remove null items
 
     return {
       id: cart._id,
       userId: cart.userId,
       items: items,
       createdAt: cart.createdAt,
-      updatedAt: cart.updatedAt
+      updatedAt: cart.updatedAt,
     };
   } catch (error) {
     console.error("Error in getCart:", error);
@@ -1156,7 +1170,7 @@ async function addToCart(
 ): Promise<any> {
   try {
     const realm = await initRealm();
-    
+
     // Check if product exists first
     const product = realm.objectForPrimaryKey("Product", productId);
     if (!product) {
@@ -1180,15 +1194,30 @@ async function addToCart(
       }
 
       // Find existing item with same product and color
-      const existingItems = realm.objects<CartItem>("CartItem").filtered("cart._id == $0 AND productId == $1 AND selectedColor == $2", cart._id, productId, selectedColor || null);
+      const existingItems = realm
+        .objects<CartItem>("CartItem")
+        .filtered(
+          "cart._id == $0 AND productId == $1 AND selectedColor == $2",
+          cart._id,
+          productId,
+          selectedColor || null
+        );
       const existingItem = existingItems[0];
 
       if (existingItem) {
-        console.log('Updating existing cart item:', { itemId: existingItem._id, productId, quantity: existingItem.quantity + quantity });
+        console.log("Updating existing cart item:", {
+          itemId: existingItem._id,
+          productId,
+          quantity: existingItem.quantity + quantity,
+        });
         existingItem.quantity += quantity;
         existingItem.updatedAt = new Date();
       } else {
-        console.log('Creating new cart item:', { productId, quantity, selectedColor });
+        console.log("Creating new cart item:", {
+          productId,
+          quantity,
+          selectedColor,
+        });
         const newItem = realm.create<CartItem>("CartItem", {
           _id: new ObjectId().toString(),
           cart,
@@ -1198,43 +1227,52 @@ async function addToCart(
           createdAt: new Date(),
           updatedAt: new Date(),
         });
-        console.log('Created new cart item:', { itemId: newItem._id });
+        console.log("Created new cart item:", { itemId: newItem._id });
       }
 
       cart.updatedAt = new Date();
 
       // Get all cart items
-      const cartItems = realm.objects<CartItem>("CartItem").filtered("cart._id == $0", cart._id);
+      const cartItems = realm
+        .objects<CartItem>("CartItem")
+        .filtered("cart._id == $0", cart._id);
       console.log(`Found ${cartItems.length} items in cart after update`);
 
       // Prepare result with product details
       result = {
         _id: cart._id,
         userId: cart.userId,
-        items: Array.from(cartItems).map((item: CartItem) => {
-          const prod = realm!.objectForPrimaryKey<Product>("Product", item.productId);
-          if (!prod) {
-            console.warn(`Product not found for cart item: ${item.productId}`);
-            return null;
-          }
-          return {
-            _id: item._id,
-            product: {
-              id: prod.id,
-              name: prod.name,
-              price: prod.price,
-              image: prod.image,
-            },
-            quantity: item.quantity,
-            selectedColor: item.selectedColor,
-          };
-        }).filter(Boolean), // Remove null items
+        items: Array.from(cartItems)
+          .map((item: CartItem) => {
+            const prod = realm!.objectForPrimaryKey<Product>(
+              "Product",
+              item.productId
+            );
+            if (!prod) {
+              console.warn(
+                `Product not found for cart item: ${item.productId}`
+              );
+              return null;
+            }
+            return {
+              _id: item._id,
+              product: {
+                id: prod.id,
+                name: prod.name,
+                price: prod.price,
+                image: prod.image,
+              },
+              quantity: item.quantity,
+              selectedColor: item.selectedColor,
+            };
+          })
+          .filter(Boolean), // Remove null items
         createdAt: cart.createdAt,
-        updatedAt: cart.updatedAt
+        updatedAt: cart.updatedAt,
       };
     });
 
-    console.log('Cart updated successfully:', result);
+    console.log("Cart updated successfully:", result);
     return result;
   } catch (error) {
     console.error("Error in addToCart:", error);
@@ -1250,14 +1288,20 @@ async function updateCartItemQuantity(
   await ensureInitialized();
   if (!realm) throw new Error("Database not initialized");
 
-  const cart = realm.objects<Cart>("Cart").filtered("userId == $0", userId)[0] as unknown as Cart;
+  const cart = realm
+    .objects<Cart>("Cart")
+    .filtered("userId == $0", userId)[0] as unknown as Cart;
   if (!cart) {
-    throw new Error('Cart not found for user: ' + userId);
+    throw new Error("Cart not found for user: " + userId);
   }
 
   const item = realm
     .objects<CartItem>("CartItem")
-    .filtered("cart._id == $0 AND productId == $1", getCartId(cart), productId)[0];
+    .filtered(
+      "cart._id == $0 AND productId == $1",
+      getCartId(cart),
+      productId
+    )[0];
   if (!item) throw new Error("Item not found in cart");
 
   realm.write(() => {
@@ -1273,7 +1317,7 @@ async function updateCartItemQuantity(
     if (cart) {
       cart.updatedAt = new Date();
     } else {
-      throw new Error('Cart is undefined');
+      throw new Error("Cart is undefined");
     }
   });
 
@@ -1284,14 +1328,20 @@ async function removeFromCart(userId: string, productId: string): Promise<any> {
   await ensureInitialized();
   if (!realm) throw new Error("Database not initialized");
 
-  const cart = realm.objects<Cart>("Cart").filtered("userId == $0", userId)[0] as unknown as Cart;
+  const cart = realm
+    .objects<Cart>("Cart")
+    .filtered("userId == $0", userId)[0] as unknown as Cart;
   if (!cart) {
-    throw new Error('Cart not found for user: ' + userId);
+    throw new Error("Cart not found for user: " + userId);
   }
 
   const item = realm
     .objects("CartItem")
-    .filtered("cart._id == $0 AND productId == $1", getCartId(cart), productId)[0];
+    .filtered(
+      "cart._id == $0 AND productId == $1",
+      getCartId(cart),
+      productId
+    )[0];
   if (!item) throw new Error("Item not found in cart");
 
   realm.write(() => {
@@ -1302,7 +1352,7 @@ async function removeFromCart(userId: string, productId: string): Promise<any> {
     if (cart) {
       cart.updatedAt = new Date();
     } else {
-      throw new Error('Cart is undefined');
+      throw new Error("Cart is undefined");
     }
   });
 
@@ -1313,10 +1363,14 @@ async function clearCart(userId: string): Promise<void> {
   await ensureInitialized();
   if (!realm) throw new Error("Database not initialized");
 
-  const cart = realm.objects("Cart").filtered("userId == $0", userId)[0] as unknown as Cart;
+  const cart = realm
+    .objects("Cart")
+    .filtered("userId == $0", userId)[0] as unknown as Cart;
   if (!cart) return;
 
-  const items = realm.objects("CartItem").filtered("cart._id == $0", getCartId(cart));
+  const items = realm
+    .objects("CartItem")
+    .filtered("cart._id == $0", getCartId(cart));
 
   realm.write(() => {
     if (!realm) {
@@ -1326,7 +1380,7 @@ async function clearCart(userId: string): Promise<void> {
     if (cart) {
       cart.updatedAt = new Date();
     } else {
-      throw new Error('Cart is undefined');
+      throw new Error("Cart is undefined");
     }
   });
 }
@@ -1335,10 +1389,10 @@ async function clearCart(userId: string): Promise<void> {
 async function getOrderById(id: string): Promise<Order | null> {
   const realm = await initRealm();
   if (!realm) {
-    throw new Error('Failed to initialize Realm database');
+    throw new Error("Failed to initialize Realm database");
   }
   try {
-    const order = realm.objectForPrimaryKey('Order', id);
+    const order = realm.objectForPrimaryKey("Order", id);
     if (!order) return null;
     return mapRealmOrderToOrder(order);
   } finally {
@@ -1352,7 +1406,7 @@ async function updateOrderInDb(
 ): Promise<Order | null> {
   const realm = await initRealm();
   if (!realm) {
-    throw new Error('Failed to initialize Realm database');
+    throw new Error("Failed to initialize Realm database");
   }
   try {
     let updatedOrder: any = null;
@@ -1361,34 +1415,38 @@ async function updateOrderInDb(
       if (!order) {
         return null;
       }
-      
+
       // Create a copy of the order data
       const orderCopy = {
         _id: order._id,
         userId: order.userId,
         totalAmount: order.totalAmount,
         status: orderData.status || order.status,
-        items: Array.from(order.items as Realm.List<RealmOrderItem>).map(item => ({
-          _id: item._id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-          selectedColor: item.selectedColor
-        })),
+        items: Array.from(order.items as Realm.List<RealmOrderItem>).map(
+          (item) => ({
+            _id: item._id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            selectedColor: item.selectedColor,
+          })
+        ),
         paymentMethod: order.paymentMethod,
         slipUrl: order.slipUrl,
-        shippingDetails: order.shippingDetails ? Object.fromEntries(Object.entries(order.shippingDetails)) : {},
+        shippingDetails: order.shippingDetails
+          ? Object.fromEntries(Object.entries(order.shippingDetails))
+          : {},
         createdAt: order.createdAt,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
-      
+
       // Update the order
       Object.assign(order, { ...orderData, updatedAt: new Date() });
-      
+
       // Store the copy
       updatedOrder = orderCopy;
     });
-    
+
     return updatedOrder;
   } catch (error) {
     console.error("Error updating order:", error);
@@ -1440,17 +1498,17 @@ function mapRealmOrderToOrder(order: any): Order {
 }
 
 // Product Type, Brand, and Category functions
-async function getAllProductTypes(): Promise<{ _id: string; name: string; }[]> {
+async function getAllProductTypes(): Promise<{ _id: string; name: string }[]> {
   try {
     if (!realm) {
       await initRealm();
     }
     if (!realm) throw new Error("Realm database is not initialized");
-    
-    const types = realm.objects("ProductType").sorted('name');
-    return Array.from(types).map(type => ({
+
+    const types = realm.objects("ProductType").sorted("name");
+    return Array.from(types).map((type) => ({
       _id: String(type._id),
-      name: String(type.name)
+      name: String(type.name),
     }));
   } catch (error) {
     console.error("Error fetching product types:", error);
@@ -1458,17 +1516,17 @@ async function getAllProductTypes(): Promise<{ _id: string; name: string; }[]> {
   }
 }
 
-async function getAllBrands(): Promise<{ id: string; name: string; }[]> {
+async function getAllBrands(): Promise<{ id: string; name: string }[]> {
   try {
     if (!realm) {
       await initRealm();
     }
     if (!realm) throw new Error("Realm database is not initialized");
-    
-    const brands = realm.objects("Brand").sorted('name');
-    return Array.from(brands).map(brand => ({
+
+    const brands = realm.objects("Brand").sorted("name");
+    return Array.from(brands).map((brand) => ({
       id: String(brand.id),
-      name: String(brand.name)
+      name: String(brand.name),
     }));
   } catch (error) {
     console.error("Error fetching brands:", error);
@@ -1476,17 +1534,17 @@ async function getAllBrands(): Promise<{ id: string; name: string; }[]> {
   }
 }
 
-async function getAllCategories(): Promise<{ id: string; name: string; }[]> {
+async function getAllCategories(): Promise<{ id: string; name: string }[]> {
   try {
     if (!realm) {
       await initRealm();
     }
     if (!realm) throw new Error("Realm database is not initialized");
-    
-    const categories = realm.objects("Category").sorted('name');
-    return Array.from(categories).map(category => ({
+
+    const categories = realm.objects("Category").sorted("name");
+    return Array.from(categories).map((category) => ({
       id: String(category.id),
-      name: String(category.name)
+      name: String(category.name),
     }));
   } catch (error) {
     console.error("Error fetching categories:", error);
@@ -1504,13 +1562,13 @@ async function createProductType(data: { name: string; description?: string }) {
 
     let productType;
     realm.write(() => {
-      productType = realm!.create('ProductType', {
+      productType = realm!.create("ProductType", {
         _id: new ObjectId(),
         name: data.name,
         slug: slugify(data.name, { lower: true }),
-        description: data.description || '',
+        description: data.description || "",
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       });
     });
     return productType;
@@ -1520,16 +1578,22 @@ async function createProductType(data: { name: string; description?: string }) {
   }
 }
 
-async function updateProductType(id: string, data: { name?: string; description?: string }) {
+async function updateProductType(
+  id: string,
+  data: { name?: string; description?: string }
+) {
   try {
     if (!realm) {
       await initRealm();
     }
     if (!realm) throw new Error("Realm database is not initialized");
 
-    const productType = realm.objectForPrimaryKey('ProductType', new ObjectId(id));
+    const productType = realm.objectForPrimaryKey(
+      "ProductType",
+      new ObjectId(id)
+    );
     if (!productType) {
-      throw new Error('Product type not found');
+      throw new Error("Product type not found");
     }
 
     realm.write(() => {
@@ -1559,7 +1623,10 @@ async function deleteProductType(id: string): Promise<boolean> {
     }
     if (!realm) throw new Error("Realm database is not initialized");
 
-    const productType = realm.objectForPrimaryKey('ProductType', new ObjectId(id));
+    const productType = realm.objectForPrimaryKey(
+      "ProductType",
+      new ObjectId(id)
+    );
     if (!productType) {
       return false;
     }
@@ -1579,7 +1646,7 @@ async function deleteProductType(id: string): Promise<boolean> {
 
 function getCartId(cart: Cart | undefined): string {
   if (!cart) {
-    throw new Error('Cart is undefined');
+    throw new Error("Cart is undefined");
   }
   return cart._id;
 }
@@ -1621,5 +1688,5 @@ export {
   createProductType,
   updateProductType,
   deleteProductType,
-  getCartId
+  getCartId,
 };

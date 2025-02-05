@@ -29,7 +29,7 @@ export function AdminLogin() {
         return;
       }
 
-      login({ ...user, token });
+      login(user, token);
       
       navigate('/admin/dashboard', { replace: true });
     } catch (err: any) {

@@ -903,21 +903,27 @@ async function updateProduct(
 
 async function deleteProduct(id: string): Promise<boolean> {
   try {
-    const realm = await ensureInitialized();
-    if (!realm) return false;
+    const realmInstance = await ensureInitialized();
+    if (!realmInstance) {
+      console.log("Failed to initialize Realm");
+      return false;
+    }
 
-    // Find the product using string id directly
-    const product = realm.objectForPrimaryKey("Product", id);
+    // Find product using direct string ID
+    const product = realmInstance
+      .objects("Product")
+      .filtered("id == $0", id)[0];
+
     if (!product) {
       console.log(`Product not found with id: ${id}`);
       return false;
     }
 
-    realm.write(() => {
-      realm!.delete(product);
+    realmInstance.write(() => {
+      realmInstance.delete(product);
+      console.log(`Deleted product with id: ${id}`);
     });
 
-    console.log(`Successfully deleted product with id: ${id}`);
     return true;
   } catch (error) {
     console.error("Error deleting product:", error);

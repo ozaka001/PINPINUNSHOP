@@ -297,9 +297,9 @@ export async function deleteProduct(req: Request, res: Response) {
       return res.status(400).json({ error: 'Product ID is required' });
     }
 
-    const realmInstance = realm!; // Create a non-null reference
+    const realmInstance = realm!;
     const products = realmInstance.objects('Product');
-    const productToDelete = products.filtered('_id == $0', new ObjectId(productId))[0];
+    const productToDelete = products.filtered('id == $0', productId)[0];
 
     if (!productToDelete) {
       return res.status(404).json({ error: 'Product not found' });

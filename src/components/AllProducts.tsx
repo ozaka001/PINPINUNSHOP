@@ -44,7 +44,7 @@ export function AllProducts() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const brand = searchParams.get("brand")?.toLowerCase();
+        const brand = searchParams.get("brand");
         const category = searchParams.get("category");
         let url = `${import.meta.env.VITE_API_BASE_URL}/products`;
 

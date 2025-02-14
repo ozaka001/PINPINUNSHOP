@@ -471,15 +471,15 @@ export function AllProducts() {
         )}
 
         {/* Product Grid */}
-        <div className="flex-1">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="flex-1 flex flex-col min-h-[600px]">
+          <div className="grid flex-grow grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
             {currentProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
 
           {/* Pagination Controls */}
-          <div className="flex justify-center mt-8">
+          <div className="flex justify-center py-8">
             <button
               onClick={handlePreviousPage}
               disabled={currentPage === 1}

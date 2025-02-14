@@ -4,8 +4,13 @@ import { ProductCard } from "./ProductCard.js";
 import { Pagination } from "./Pagination.js";
 
 interface Category {
+  id: string;
   name: string;
-  count: number;
+  slug: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  count?: number;
 }
 
 interface Product {
@@ -34,7 +39,7 @@ const sortOptions = [
 
 export function NewProducts() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("All New Arrivals");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSort, setSelectedSort] = useState(sortOptions[0]);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -62,21 +67,50 @@ export function NewProducts() {
         console.log("Categories data:", data);
 
         if (Array.isArray(data)) {
-          const categoriesWithCount = data.map((category: any) => ({
-            name: category.name,
-            count: products.filter((p) => p.category === category.name).length,
-          }));
-          setCategories([
-            { name: "All New Arrivals", count: products.length },
-            ...categoriesWithCount,
-          ]);
+          // Add "All New Arrivals" category
+          const categoriesWithAll = [
+            {
+              id: "all",
+              name: "All New Arrivals",
+              slug: "all",
+              description: "All new arrivals",
+              created_at: "",
+              updated_at: "",
+              count: products.length,
+            },
+            ...data.map((category) => ({
+              ...category,
+              count: products.filter((p) => p.category === category.id).length,
+            })),
+          ];
+          setCategories(categoriesWithAll);
         } else {
           console.error("Invalid categories data format:", data);
-          setCategories([{ name: "All New Arrivals", count: products.length }]);
+          setCategories([
+            {
+              id: "all",
+              name: "All New Arrivals",
+              slug: "all",
+              description: "All new arrivals",
+              created_at: "",
+              updated_at: "",
+              count: products.length,
+            },
+          ]);
         }
       } catch (error) {
         console.error("Error fetching categories:", error);
-        setCategories([{ name: "All New Arrivals", count: products.length }]);
+        setCategories([
+          {
+            id: "all",
+            name: "All New Arrivals",
+            slug: "all",
+            description: "All new arrivals",
+            created_at: "",
+            updated_at: "",
+            count: products.length,
+          },
+        ]);
       }
     };
 
@@ -131,10 +165,7 @@ export function NewProducts() {
   const filteredProducts = products
     .filter((product) => {
       // Category filter
-      if (
-        selectedCategory !== "All New Arrivals" &&
-        product.category !== selectedCategory
-      ) {
+      if (selectedCategory !== "all" && product.category !== selectedCategory) {
         return false;
       }
 
@@ -173,6 +204,22 @@ export function NewProducts() {
   );
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="max-w-[1920px] mx-auto px-2 sm:px-4">
       {/* Header Banner */}
@@ -197,7 +244,7 @@ export function NewProducts() {
               Filter
             </button>
             <span className="text-xs text-gray-500 sm:text-sm">
-              48 New Items
+              {filteredProducts.length} New Items
             </span>
           </div>
           <div className="relative">
@@ -248,13 +295,13 @@ export function NewProducts() {
               <div className="space-y-1.5">
                 {categories.map((category) => (
                   <button
-                    key={category.name}
+                    key={category.id}
                     onClick={() => {
-                      setSelectedCategory(category.name);
+                      setSelectedCategory(category.id);
                       setIsSidebarOpen(false);
                     }}
                     className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
-                      selectedCategory === category.name
+                      selectedCategory === category.id
                         ? "bg-black text-white"
                         : "hover:bg-gray-100"
                     }`}
@@ -315,10 +362,10 @@ export function NewProducts() {
             <div className="space-y-1.5">
               {categories.map((category) => (
                 <button
-                  key={category.name}
-                  onClick={() => setSelectedCategory(category.name)}
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
                   className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
-                    selectedCategory === category.name
+                    selectedCategory === category.id
                       ? "bg-black text-white"
                       : "hover:bg-gray-100"
                   }`}
@@ -379,14 +426,36 @@ export function NewProducts() {
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          )}
+          {/* Pagination Controls */}
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              className="px-4 py-2 mx-1 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => handlePageChange(index + 1)}
+                className={`px-4 py-2 mx-1 text-xs font-medium rounded ${
+                  currentPage === index + 1
+                    ? "bg-black text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 mx-1 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

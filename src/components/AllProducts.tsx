@@ -6,8 +6,13 @@ import { useSearchParams } from "react-router-dom";
 import { Pagination } from "./Pagination.js";
 
 interface Category {
+  id: string;
   name: string;
-  count: number;
+  slug: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  count?: number;
 }
 
 const sortOptions = [
@@ -21,8 +26,8 @@ export function AllProducts() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(
-    searchParams.get("category") || "All Products"
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    searchParams.get("category") || "all"
   );
   const [selectedSort, setSelectedSort] = useState(sortOptions[0]);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -33,30 +38,37 @@ export function AllProducts() {
   const [currentPage, setCurrentPage] = useState(1);
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const productsPerPage = 12;
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   useEffect(() => {
-    // Fetch products from the API
     const fetchProducts = async () => {
       try {
+        setLoading(true);
         const brand = searchParams.get("brand")?.toLowerCase();
         const category = searchParams.get("category");
-        let url = `${import.meta.env.VITE_API_BASE_URL}/products?`;
+        let url = `${import.meta.env.VITE_API_BASE_URL}/products`;
 
+        // สร้าง URL parameters
+        const params = new URLSearchParams();
         if (brand) {
-          url += `brand=${encodeURIComponent(brand)}&`;
+          params.append("brand", brand);
         }
         if (category && category !== "All Products") {
-          url += `category=${encodeURIComponent(category)}&`;
+          params.append("category", category);
         }
 
-        console.log("Fetching products with URL:", url);
+        // เพิ่ม parameters ถ้ามี
+        const finalUrl = params.toString()
+          ? `${url}?${params.toString()}`
+          : url;
 
-        const response = await fetch(url);
+        console.log("Fetching products with URL:", finalUrl);
+
+        const response = await fetch(finalUrl);
         if (!response.ok) {
           throw new Error("Failed to fetch products");
         }
         const data = await response.json();
-        console.log("Received products:", data);
         setProducts(data);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -70,8 +82,8 @@ export function AllProducts() {
   }, [searchParams]);
 
   useEffect(() => {
-    // Fetch categories and update counts
     const fetchCategories = async () => {
+      setLoadingCategories(true);
       try {
         const response = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/categories`
@@ -81,35 +93,63 @@ export function AllProducts() {
           throw new Error(`Failed to fetch categories: ${response.status}`);
         }
 
-        const data = await response.json();
+        const data: Category[] = await response.json();
 
-        if (Array.isArray(data)) {
-          // Calculate product counts for each category
-          const categoriesWithCount = data.map((category: any) => ({
-            name: category.name,
-            count: products.filter((p) => p.category === category.name).length,
-          }));
+        // Calculate counts for each category
+        const categoryCounts = products.reduce(
+          (counts: { [key: string]: number }, product) => {
+            if (product.category) {
+              counts[product.category] = (counts[product.category] || 0) + 1;
+            }
+            return counts;
+          },
+          {}
+        );
 
-          // Add "All Products" category
-          const allProductsCategory = {
+        // Add counts to categories and "All Products" category
+        const categoriesWithCounts = data.map((category) => ({
+          ...category,
+          count: categoryCounts[category.id] || 0,
+        }));
+
+        // Add "All Products" category with total count
+        const categoriesWithAll = [
+          {
+            id: "all",
             name: "All Products",
+            slug: "all",
+            description: "All Products",
+            created_at: "",
+            updated_at: "",
             count: products.length,
-          };
+          },
+          ...categoriesWithCounts,
+        ];
 
-          setCategories([allProductsCategory, ...categoriesWithCount]);
-        }
+        setCategories(categoriesWithAll);
       } catch (error) {
         console.error("Error fetching categories:", error);
-        setCategories([{ name: "All Products", count: products.length }]);
+        setCategories([
+          {
+            id: "all",
+            name: "All Products",
+            slug: "all",
+            description: "All Products",
+            created_at: "",
+            updated_at: "",
+          },
+        ]);
+      } finally {
+        setLoadingCategories(false);
       }
     };
 
     fetchCategories();
-  }, [products]); // Only re-run when products change
+  }, [products]);
 
   useEffect(() => {
     // Update URL when category changes
-    if (selectedCategory === "All Products") {
+    if (selectedCategory === "all") {
       searchParams.delete("category");
     } else {
       searchParams.set("category", selectedCategory);
@@ -153,12 +193,38 @@ export function AllProducts() {
     setPriceRange({ min: "", max: "" });
   };
 
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    if (categoryId === "all") {
+      searchParams.delete("category");
+    } else {
+      searchParams.set("category", categoryId);
+    }
+    setSearchParams(searchParams);
+    setCurrentPage(1);
+  };
+
   const filteredProducts = products
     .filter((product) => {
       // Category filter
       const categoryMatch =
-        selectedCategory === "All Products" ||
-        product.category === selectedCategory;
+        selectedCategory === "all" || product.category === selectedCategory;
 
       // Price filter
       const priceMatch =
@@ -189,21 +255,6 @@ export function AllProducts() {
     indexOfLastProduct
   );
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-
-  const handleCategoryChange = (categoryName: string) => {
-    setSelectedCategory(categoryName);
-    if (categoryName === "All Products") {
-      searchParams.delete("category");
-    } else {
-      searchParams.set("category", categoryName);
-    }
-    setSearchParams(searchParams);
-    setCurrentPage(1); // Reset to first page when changing category
-  };
-
-  if (loading) {
-    return <div>Loading products...</div>;
-  }
 
   return (
     <div className="max-w-[1920px] mx-auto px-2 sm:px-4">
@@ -282,25 +333,29 @@ export function AllProducts() {
               <div className="space-y-4">
                 <div>
                   <h3 className="mb-3 text-sm font-medium">Categories</h3>
-                  <div className="space-y-1.5">
-                    {categories.map((category) => (
-                      <button
-                        key={category.name}
-                        onClick={() => {
-                          handleCategoryChange(category.name);
-                          setIsMobileFilterOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
-                          selectedCategory === category.name
-                            ? "bg-black text-white"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <span>{category.name}</span>
-                        <span className="text-[10px]">({category.count})</span>
-                      </button>
-                    ))}
-                  </div>
+                  {loadingCategories ? (
+                    <div>Loading categories...</div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {categories.map((category) => (
+                        <button
+                          key={category.id}
+                          onClick={() => {
+                            handleCategoryChange(category.id);
+                            setIsMobileFilterOpen(false);
+                          }}
+                          className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
+                            selectedCategory === category.id
+                              ? "bg-black text-white"
+                              : "hover:bg-gray-100"
+                          }`}
+                        >
+                          <span>{category.name}</span>
+                          <span>({category.count})</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -352,23 +407,26 @@ export function AllProducts() {
           <div className="flex-shrink-0 hidden w-56 lg:block">
             <div className="sticky top-20">
               <h3 className="mb-3 text-sm font-medium">Categories</h3>
-              <div className="space-y-1.5">
-                {categories.map((category) => (
-                  <button
-                    key={category.name}
-                    onClick={() => handleCategoryChange(category.name)}
-                    className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
-                      selectedCategory === category.name
-                        ? "bg-black text-white"
-                        : "hover:bg-gray-100"
-                    }`}
-                  >
-                    <span>{category.name}</span>
-                    <span className="text-[10px]">({category.count})</span>
-                  </button>
-                ))}
-              </div>
-
+              {loadingCategories ? (
+                <div>Loading categories...</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => handleCategoryChange(category.id)}
+                      className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
+                        selectedCategory === category.id
+                          ? "bg-black text-white"
+                          : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <span>{category.name}</span>
+                      <span>({category.count})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="mt-6">
                 <h3 className="mb-3 text-sm font-medium">Price Range</h3>
                 <div className="space-y-3">
@@ -420,14 +478,36 @@ export function AllProducts() {
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          )}
+          {/* Pagination Controls */}
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              className="px-4 py-2 mx-1 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => handlePageChange(index + 1)}
+                className={`px-4 py-2 mx-1 text-xs font-medium rounded ${
+                  currentPage === index + 1
+                    ? "bg-black text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 mx-1 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

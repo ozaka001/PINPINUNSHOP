@@ -18,14 +18,19 @@ interface Product {
 }
 
 interface Category {
+  id: string;
   name: string;
-  count: number;
+  slug: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  count?: number;
 }
 
 const discountFilters = [
-  { label: "Up to 30% off", value: "30" },
-  { label: "Up to 50% off", value: "50" },
-  { label: "Up to 70% off", value: "70" },
+  { label: "10% - 30% off", value: "30" },
+  { label: "31% - 50% off", value: "50" },
+  { label: "Over 50% off", value: "70" },
 ];
 
 const sortOptions = [
@@ -36,7 +41,7 @@ const sortOptions = [
 
 export function SaleProducts() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("All Sale Items");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSort, setSelectedSort] = useState(sortOptions[0]);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -58,7 +63,7 @@ export function SaleProducts() {
           return {
             ...category,
             count: products.filter(
-              (p: Product) => p.category === category.name && p.salePrice > 0
+              (p) => p.category === category.id && p.salePrice > 0
             ).length,
           };
         })
@@ -112,20 +117,49 @@ export function SaleProducts() {
         const categoriesData = await categoriesResponse.json();
 
         if (Array.isArray(categoriesData)) {
-          const categoriesWithCount = categoriesData.map((category: any) => ({
-            name: category.name,
-            count: saleProducts.filter(
-              (p: Product) => p.category === category.name && p.salePrice > 0
-            ).length,
-          }));
-          setCategories([
-            { name: "All Sale Items", count: saleProducts.length },
-            ...categoriesWithCount,
-          ]);
+          // Add "All Sale Items" category
+          interface AllSaleCategory extends Category {
+            count: number;
+          }
+
+          interface CategoryWithCount extends Category {
+            count: number;
+          }
+
+          const categoriesWithAll: Array<AllSaleCategory | CategoryWithCount> =
+            [
+              {
+                id: "all",
+                name: "All Sale Items",
+                slug: "all",
+                description: "All items on sale",
+                created_at: "",
+                updated_at: "",
+                count: saleProducts.length,
+              },
+              ...categoriesData.map(
+                (category: Category): CategoryWithCount => ({
+                  ...category,
+                  count: saleProducts.filter(
+                    (p: Product) =>
+                      p.category === category.id && p.salePrice > 0
+                  ).length,
+                })
+              ),
+            ];
+          setCategories(categoriesWithAll);
         } else {
           console.error("Invalid categories data format:", categoriesData);
           setCategories([
-            { name: "All Sale Items", count: saleProducts.length },
+            {
+              id: "all",
+              name: "All Sale Items",
+              slug: "all",
+              description: "All items on sale",
+              created_at: "",
+              updated_at: "",
+              count: saleProducts.length,
+            },
           ]);
         }
 
@@ -179,10 +213,7 @@ export function SaleProducts() {
   const filteredProducts = products
     .filter((product) => {
       // Category filter
-      if (
-        selectedCategory !== "All Sale Items" &&
-        product.category !== selectedCategory
-      ) {
+      if (selectedCategory !== "all" && product.category !== selectedCategory) {
         return false;
       }
 
@@ -199,12 +230,17 @@ export function SaleProducts() {
         const discountPercent =
           ((product.regularPrice - product.salePrice) / product.regularPrice) *
           100;
-        const maxDiscount = parseInt(selectedDiscount);
-        if (
-          discountPercent > maxDiscount ||
-          discountPercent <= maxDiscount - 20
-        ) {
-          return false;
+        // Handle different discount range cases
+        switch (selectedDiscount) {
+          case "30": // 10-30% off
+            if (discountPercent < 10 || discountPercent > 30) return false;
+            break;
+          case "50": // 31-50% off
+            if (discountPercent <= 30 || discountPercent > 50) return false;
+            break;
+          case "70": // Over 50% off
+            if (discountPercent <= 50) return false;
+            break;
         }
       }
 
@@ -262,7 +298,7 @@ export function SaleProducts() {
               Filter
             </button>
             <span className="text-xs text-gray-500 sm:text-sm">
-              86 Sale Items
+              {filteredProducts.length} Sale Items
             </span>
           </div>
           <div className="relative">
@@ -325,10 +361,10 @@ export function SaleProducts() {
               <div className="space-y-1.5">
                 {categories.map((category) => (
                   <button
-                    key={category.name}
-                    onClick={() => handleCategoryChange(category.name)}
+                    key={category.id}
+                    onClick={() => handleCategoryChange(category.id)}
                     className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
-                      selectedCategory === category.name
+                      selectedCategory === category.id
                         ? "bg-red-600 text-white"
                         : "hover:bg-gray-100"
                     }`}

@@ -44,21 +44,27 @@ export function SaleProducts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
-  const [selectedDiscount, setSelectedDiscount] = useState<string>('');
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
+  const [selectedDiscount, setSelectedDiscount] = useState<string>("");
   const productsPerPage = 12;
 
   useEffect(() => {
     if (categories.length > 0 && products.length > 0) {
-      const updatedCategories = categories.map(category => {
-        if (category.name === "All Sale Items") {
-          return { ...category, count: products.length };
-        }
-        return {
-          ...category,
-          count: products.filter((p: Product) => p.category === category.name && p.salePrice > 0).length
-        };
-      }).filter(category => category.name === "All Sale Items" || category.count > 0);
+      const updatedCategories = categories
+        .map((category) => {
+          if (category.name === "All Sale Items") {
+            return { ...category, count: products.length };
+          }
+          return {
+            ...category,
+            count: products.filter(
+              (p: Product) => p.category === category.name && p.salePrice > 0
+            ).length,
+          };
+        })
+        .filter(
+          (category) => category.name === "All Sale Items" || category.count > 0
+        );
 
       setCategories(updatedCategories);
     }
@@ -68,18 +74,20 @@ export function SaleProducts() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products`);
-        
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/products`
+        );
+
         if (!response.ok) {
-          console.error('HTTP error', response.status);
+          console.error("HTTP error", response.status);
           const errorText = await response.text();
-          console.error('Error response:', errorText);
-          setError('Failed to fetch products.');
+          console.error("Error response:", errorText);
+          setError("Failed to fetch products.");
           return;
         }
 
         const allProducts = await response.json();
-        
+
         // Filter products and ensure all required fields are present
         const saleProducts = allProducts
           .filter((product: Product) => product.salePrice > 0)
@@ -87,33 +95,44 @@ export function SaleProducts() {
             ...product,
             salePrice: parseFloat(product.salePrice),
             regularPrice: parseFloat(product.regularPrice),
-            price: parseFloat(product.price)
+            price: parseFloat(product.price),
           }));
 
         setProducts(saleProducts);
-        
+
         // Fetch and set categories after products are loaded
-        const categoriesResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`);
+        const categoriesResponse = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/categories`
+        );
         if (!categoriesResponse.ok) {
-          throw new Error(`Failed to fetch categories: ${categoriesResponse.status}`);
+          throw new Error(
+            `Failed to fetch categories: ${categoriesResponse.status}`
+          );
         }
         const categoriesData = await categoriesResponse.json();
-        
+
         if (Array.isArray(categoriesData)) {
           const categoriesWithCount = categoriesData.map((category: any) => ({
             name: category.name,
-            count: saleProducts.filter((p: Product) => p.category === category.name && p.salePrice > 0).length
+            count: saleProducts.filter(
+              (p: Product) => p.category === category.name && p.salePrice > 0
+            ).length,
           }));
-          setCategories([{ name: "All Sale Items", count: saleProducts.length }, ...categoriesWithCount]);
+          setCategories([
+            { name: "All Sale Items", count: saleProducts.length },
+            ...categoriesWithCount,
+          ]);
         } else {
-          console.error('Invalid categories data format:', categoriesData);
-          setCategories([{ name: "All Sale Items", count: saleProducts.length }]);
+          console.error("Invalid categories data format:", categoriesData);
+          setCategories([
+            { name: "All Sale Items", count: saleProducts.length },
+          ]);
         }
-        
+
         setError(null);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to fetch data. Please try again later.');
+        console.error("Error fetching data:", error);
+        setError("Failed to fetch data. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -128,10 +147,10 @@ export function SaleProducts() {
   }, [selectedCategory, selectedSort, priceRange, selectedDiscount]);
 
   // Handle price range change
-  const handlePriceRangeChange = (type: 'min' | 'max', value: string) => {
-    setPriceRange(prev => ({
+  const handlePriceRangeChange = (type: "min" | "max", value: string) => {
+    setPriceRange((prev) => ({
       ...prev,
-      [type]: value
+      [type]: value,
     }));
   };
 
@@ -143,7 +162,7 @@ export function SaleProducts() {
 
   // Reset price range
   const handleResetPriceRange = () => {
-    setPriceRange({ min: '', max: '' });
+    setPriceRange({ min: "", max: "" });
   };
 
   // Function to handle category change
@@ -158,41 +177,51 @@ export function SaleProducts() {
 
   // Filter products based on selected category and price range
   const filteredProducts = products
-    .filter(product => {
+    .filter((product) => {
       // Category filter
-      if (selectedCategory !== "All Sale Items" && product.category !== selectedCategory) {
+      if (
+        selectedCategory !== "All Sale Items" &&
+        product.category !== selectedCategory
+      ) {
         return false;
       }
-      
+
       // Price range filter
       const price = product.salePrice;
-      const min = priceRange.min !== '' ? parseFloat(priceRange.min) : null;
-      const max = priceRange.max !== '' ? parseFloat(priceRange.max) : null;
-      
+      const min = priceRange.min !== "" ? parseFloat(priceRange.min) : null;
+      const max = priceRange.max !== "" ? parseFloat(priceRange.max) : null;
+
       if (min !== null && price < min) return false;
       if (max !== null && price > max) return false;
 
       // Discount filter
       if (selectedDiscount) {
-        const discountPercent = ((product.regularPrice - product.salePrice) / product.regularPrice) * 100;
+        const discountPercent =
+          ((product.regularPrice - product.salePrice) / product.regularPrice) *
+          100;
         const maxDiscount = parseInt(selectedDiscount);
-        if (discountPercent > maxDiscount || discountPercent <= (maxDiscount - 20)) {
+        if (
+          discountPercent > maxDiscount ||
+          discountPercent <= maxDiscount - 20
+        ) {
           return false;
         }
       }
-      
+
       return true;
     })
     .sort((a, b) => {
       // Sort based on selected option
       switch (selectedSort.value) {
-        case 'discount':
-          const discountA = ((a.regularPrice - a.salePrice) / a.regularPrice) * 100;
-          const discountB = ((b.regularPrice - b.salePrice) / b.regularPrice) * 100;
+        case "discount":
+          const discountA =
+            ((a.regularPrice - a.salePrice) / a.regularPrice) * 100;
+          const discountB =
+            ((b.regularPrice - b.salePrice) / b.regularPrice) * 100;
           return discountB - discountA;
-        case 'price_asc':
+        case "price_asc":
           return a.salePrice - b.salePrice;
-        case 'price_desc':
+        case "price_desc":
           return b.salePrice - a.salePrice;
         default:
           return 0;
@@ -202,7 +231,10 @@ export function SaleProducts() {
   // Calculate pagination
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = filteredProducts.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   if (loading) return <div>Loading...</div>;
@@ -334,25 +366,29 @@ export function SaleProducts() {
                       type="number"
                       placeholder="Min"
                       value={priceRange.min}
-                      onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                      onChange={(e) =>
+                        handlePriceRangeChange("min", e.target.value)
+                      }
                       className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                     />
                     <input
                       type="number"
                       placeholder="Max"
                       value={priceRange.max}
-                      onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                      onChange={(e) =>
+                        handlePriceRangeChange("max", e.target.value)
+                      }
                       className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                     />
                   </div>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={handleApplyPriceRange}
                       className="flex-1 py-1.5 text-xs text-white bg-red-600 rounded-lg hover:bg-red-700"
                     >
                       Apply
                     </button>
-                    <button 
+                    <button
                       onClick={handleResetPriceRange}
                       className="flex-1 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                     >

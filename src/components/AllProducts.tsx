@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Filter, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { ProductCard } from "./ProductCard.js";
-import { Product } from "../types.js"; 
+import { Product } from "../types.js";
 import { useSearchParams } from "react-router-dom";
 import { Pagination } from "./Pagination.js";
 
@@ -31,36 +31,36 @@ export function AllProducts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const productsPerPage = 12;
 
   useEffect(() => {
     // Fetch products from the API
     const fetchProducts = async () => {
       try {
-        const brand = searchParams.get('brand')?.toLowerCase();  
-        const category = searchParams.get('category');
+        const brand = searchParams.get("brand")?.toLowerCase();
+        const category = searchParams.get("category");
         let url = `${import.meta.env.VITE_API_BASE_URL}/products?`;
-        
+
         if (brand) {
-          url += `brand=${encodeURIComponent(brand)}&`;  
+          url += `brand=${encodeURIComponent(brand)}&`;
         }
-        if (category && category !== 'All Products') {
+        if (category && category !== "All Products") {
           url += `category=${encodeURIComponent(category)}&`;
         }
 
-        console.log('Fetching products with URL:', url); 
+        console.log("Fetching products with URL:", url);
 
         const response = await fetch(url);
         if (!response.ok) {
-          throw new Error('Failed to fetch products');
+          throw new Error("Failed to fetch products");
         }
         const data = await response.json();
-        console.log('Received products:', data); 
+        console.log("Received products:", data);
         setProducts(data);
       } catch (error) {
-        console.error('Error fetching products:', error);
-        setError('Failed to load products');
+        console.error("Error fetching products:", error);
+        setError("Failed to load products");
       } finally {
         setLoading(false);
       }
@@ -70,39 +70,42 @@ export function AllProducts() {
   }, [searchParams]);
 
   useEffect(() => {
-    // Fetch categories from the API
+    // Fetch categories and update counts
     const fetchCategories = async () => {
       try {
-        console.log('Fetching categories...');
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`);
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/categories`
+        );
 
         if (!response.ok) {
           throw new Error(`Failed to fetch categories: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Categories data:', data);
-        
+
         if (Array.isArray(data)) {
+          // Calculate product counts for each category
           const categoriesWithCount = data.map((category: any) => ({
             name: category.name,
-            count: products.filter(p => p.category === category.name).length
+            count: products.filter((p) => p.category === category.name).length,
           }));
-          setCategories([{ name: "All Products", count: products.length }, ...categoriesWithCount]);
-        } else {
-          console.error('Invalid categories data format:', data);
-          setCategories([{ name: "All Products", count: products.length }]);
+
+          // Add "All Products" category
+          const allProductsCategory = {
+            name: "All Products",
+            count: products.length,
+          };
+
+          setCategories([allProductsCategory, ...categoriesWithCount]);
         }
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error("Error fetching categories:", error);
         setCategories([{ name: "All Products", count: products.length }]);
       }
     };
 
-    if (products.length > 0) {
-      fetchCategories();
-    }
-  }, [products]);
+    fetchCategories();
+  }, [products]); // Only re-run when products change
 
   useEffect(() => {
     // Update URL when category changes
@@ -135,10 +138,10 @@ export function AllProducts() {
     setCurrentPage(1);
   }, [selectedCategory, selectedSort, priceRange]);
 
-  const handlePriceRangeChange = (type: 'min' | 'max', value: string) => {
-    setPriceRange(prev => ({
+  const handlePriceRangeChange = (type: "min" | "max", value: string) => {
+    setPriceRange((prev) => ({
       ...prev,
-      [type]: value
+      [type]: value,
     }));
   };
 
@@ -147,32 +150,33 @@ export function AllProducts() {
   };
 
   const handleResetPriceRange = () => {
-    setPriceRange({ min: '', max: '' });
+    setPriceRange({ min: "", max: "" });
   };
 
   const filteredProducts = products
-    .filter(product => {
-      if (selectedCategory !== "All Products" && product.category !== selectedCategory) {
-        return false;
-      }
-      
-      const price = product.price;
-      const min = priceRange.min !== '' ? parseFloat(priceRange.min) : null;
-      const max = priceRange.max !== '' ? parseFloat(priceRange.max) : null;
-      
-      if (min !== null && price < min) return false;
-      if (max !== null && price > max) return false;
-      
-      return true;
+    .filter((product) => {
+      // Category filter
+      const categoryMatch =
+        selectedCategory === "All Products" ||
+        product.category === selectedCategory;
+
+      // Price filter
+      const priceMatch =
+        (!priceRange.min || product.price >= parseFloat(priceRange.min)) &&
+        (!priceRange.max || product.price <= parseFloat(priceRange.max));
+
+      return categoryMatch && priceMatch;
     })
     .sort((a, b) => {
       switch (selectedSort.value) {
-        case 'price_asc':
+        case "price_asc":
           return a.price - b.price;
-        case 'price_desc':
+        case "price_desc":
           return b.price - a.price;
-        case 'newest':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "newest":
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         default:
           return 0;
       }
@@ -180,8 +184,22 @@ export function AllProducts() {
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = filteredProducts.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+
+  const handleCategoryChange = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    if (categoryName === "All Products") {
+      searchParams.delete("category");
+    } else {
+      searchParams.set("category", categoryName);
+    }
+    setSearchParams(searchParams);
+    setCurrentPage(1); // Reset to first page when changing category
+  };
 
   if (loading) {
     return <div>Loading products...</div>;
@@ -269,7 +287,7 @@ export function AllProducts() {
                       <button
                         key={category.name}
                         onClick={() => {
-                          setSelectedCategory(category.name);
+                          handleCategoryChange(category.name);
                           setIsMobileFilterOpen(false);
                         }}
                         className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
@@ -293,25 +311,29 @@ export function AllProducts() {
                         type="number"
                         placeholder="Min"
                         value={priceRange.min}
-                        onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                        onChange={(e) =>
+                          handlePriceRangeChange("min", e.target.value)
+                        }
                         className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                       />
                       <input
                         type="number"
                         placeholder="Max"
                         value={priceRange.max}
-                        onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                        onChange={(e) =>
+                          handlePriceRangeChange("max", e.target.value)
+                        }
                         className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                       />
                     </div>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={handleApplyPriceRange}
                         className="flex-1 py-1.5 text-xs text-white bg-red-600 rounded-lg hover:bg-red-700"
                       >
                         Apply
                       </button>
-                      <button 
+                      <button
                         onClick={handleResetPriceRange}
                         className="flex-1 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                       >
@@ -334,7 +356,7 @@ export function AllProducts() {
                 {categories.map((category) => (
                   <button
                     key={category.name}
-                    onClick={() => setSelectedCategory(category.name)}
+                    onClick={() => handleCategoryChange(category.name)}
                     className={`flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-lg ${
                       selectedCategory === category.name
                         ? "bg-black text-white"
@@ -355,25 +377,29 @@ export function AllProducts() {
                       type="number"
                       placeholder="Min"
                       value={priceRange.min}
-                      onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                      onChange={(e) =>
+                        handlePriceRangeChange("min", e.target.value)
+                      }
                       className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                     />
                     <input
                       type="number"
                       placeholder="Max"
                       value={priceRange.max}
-                      onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                      onChange={(e) =>
+                        handlePriceRangeChange("max", e.target.value)
+                      }
                       className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                     />
                   </div>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={handleApplyPriceRange}
                       className="flex-1 py-1.5 text-xs text-white bg-red-600 rounded-lg hover:bg-red-700"
                     >
                       Apply
                     </button>
-                    <button 
+                    <button
                       onClick={handleResetPriceRange}
                       className="flex-1 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                     >

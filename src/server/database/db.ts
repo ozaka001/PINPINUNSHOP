@@ -1288,6 +1288,7 @@ async function addToCart(
 
 async function updateCartItemQuantity(
   userId: string,
+  cartId: string,
   productId: string,
   quantity: number
 ): Promise<any> {
@@ -1296,18 +1297,18 @@ async function updateCartItemQuantity(
 
   const cart = realm
     .objects<Cart>("Cart")
-    .filtered("userId == $0", userId)[0] as unknown as Cart;
+    .filtered(
+      "userId == $0 AND _id == $1",
+      userId,
+      cartId
+    )[0] as unknown as Cart;
   if (!cart) {
-    throw new Error("Cart not found for user: " + userId);
+    throw new Error(`Cart not found for user ${userId} with cartId ${cartId}`);
   }
 
   const item = realm
     .objects<CartItem>("CartItem")
-    .filtered(
-      "cart._id == $0 AND productId == $1",
-      getCartId(cart),
-      productId
-    )[0];
+    .filtered("cart._id == $0 AND productId == $1", cartId, productId)[0];
   if (!item) throw new Error("Item not found in cart");
 
   realm.write(() => {
@@ -1540,7 +1541,9 @@ async function getAllBrands(): Promise<{ id: string; name: string }[]> {
   }
 }
 
-async function getAllCategories(): Promise<{ id: string; name: string }[]> {
+async function getAllCategories(): Promise<
+  { id: string; name: string; count: number }[]
+> {
   try {
     if (!realm) {
       await initRealm();
@@ -1548,9 +1551,12 @@ async function getAllCategories(): Promise<{ id: string; name: string }[]> {
     if (!realm) throw new Error("Realm database is not initialized");
 
     const categories = realm.objects("Category").sorted("name");
+    const products = realm.objects("Product");
+
     return Array.from(categories).map((category) => ({
       id: String(category.id),
       name: String(category.name),
+      count: products.filtered("category == $0", category.name).length,
     }));
   } catch (error) {
     console.error("Error fetching categories:", error);

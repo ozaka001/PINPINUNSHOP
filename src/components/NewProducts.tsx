@@ -42,35 +42,40 @@ export function NewProducts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const productsPerPage = 12;
 
   useEffect(() => {
     // Fetch categories from the API
     const fetchCategories = async () => {
       try {
-        console.log('Fetching categories...');
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`);
+        console.log("Fetching categories...");
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/categories`
+        );
 
         if (!response.ok) {
           throw new Error(`Failed to fetch categories: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Categories data:', data);
-        
+        console.log("Categories data:", data);
+
         if (Array.isArray(data)) {
           const categoriesWithCount = data.map((category: any) => ({
             name: category.name,
-            count: products.filter(p => p.category === category.name).length
+            count: products.filter((p) => p.category === category.name).length,
           }));
-          setCategories([{ name: "All New Arrivals", count: products.length }, ...categoriesWithCount]);
+          setCategories([
+            { name: "All New Arrivals", count: products.length },
+            ...categoriesWithCount,
+          ]);
         } else {
-          console.error('Invalid categories data format:', data);
+          console.error("Invalid categories data format:", data);
           setCategories([{ name: "All New Arrivals", count: products.length }]);
         }
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error("Error fetching categories:", error);
         setCategories([{ name: "All New Arrivals", count: products.length }]);
       }
     };
@@ -83,14 +88,16 @@ export function NewProducts() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products?addedWithin=1month`);
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/products?addedWithin=1month`
+        );
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error("Network response was not ok");
         }
         const data = await response.json();
         setProducts(data);
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error("Error fetching products:", error);
       }
     };
     fetchProducts();
@@ -102,10 +109,10 @@ export function NewProducts() {
   }, [selectedCategory, selectedSort, priceRange]);
 
   // Handle price range change
-  const handlePriceRangeChange = (type: 'min' | 'max', value: string) => {
-    setPriceRange(prev => ({
+  const handlePriceRangeChange = (type: "min" | "max", value: string) => {
+    setPriceRange((prev) => ({
       ...prev,
-      [type]: value
+      [type]: value,
     }));
   };
 
@@ -117,36 +124,41 @@ export function NewProducts() {
 
   // Reset price range
   const handleResetPriceRange = () => {
-    setPriceRange({ min: '', max: '' });
+    setPriceRange({ min: "", max: "" });
   };
 
   // Filter products based on selected category and price range
   const filteredProducts = products
-    .filter(product => {
+    .filter((product) => {
       // Category filter
-      if (selectedCategory !== "All New Arrivals" && product.category !== selectedCategory) {
+      if (
+        selectedCategory !== "All New Arrivals" &&
+        product.category !== selectedCategory
+      ) {
         return false;
       }
-      
+
       // Price range filter
       const price = product.price;
-      const min = priceRange.min !== '' ? parseFloat(priceRange.min) : null;
-      const max = priceRange.max !== '' ? parseFloat(priceRange.max) : null;
-      
+      const min = priceRange.min !== "" ? parseFloat(priceRange.min) : null;
+      const max = priceRange.max !== "" ? parseFloat(priceRange.max) : null;
+
       if (min !== null && price < min) return false;
       if (max !== null && price > max) return false;
-      
+
       return true;
     })
     .sort((a, b) => {
       // Sort based on selected option
       switch (selectedSort.value) {
-        case 'price_asc':
+        case "price_asc":
           return a.price - b.price;
-        case 'price_desc':
+        case "price_desc":
           return b.price - a.price;
-        case 'newest':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "newest":
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         default:
           return 0;
       }
@@ -155,7 +167,10 @@ export function NewProducts() {
   // Calculate pagination
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = filteredProducts.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   return (
@@ -258,25 +273,29 @@ export function NewProducts() {
                       type="number"
                       placeholder="Min"
                       value={priceRange.min}
-                      onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                      onChange={(e) =>
+                        handlePriceRangeChange("min", e.target.value)
+                      }
                       className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                     />
                     <input
                       type="number"
                       placeholder="Max"
                       value={priceRange.max}
-                      onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                      onChange={(e) =>
+                        handlePriceRangeChange("max", e.target.value)
+                      }
                       className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                     />
                   </div>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={handleApplyPriceRange}
                       className="flex-1 py-1.5 text-xs text-white bg-red-600 rounded-lg hover:bg-red-700"
                     >
                       Apply
                     </button>
-                    <button 
+                    <button
                       onClick={handleResetPriceRange}
                       className="flex-1 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                     >
@@ -318,25 +337,29 @@ export function NewProducts() {
                     type="number"
                     placeholder="Min"
                     value={priceRange.min}
-                    onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                    onChange={(e) =>
+                      handlePriceRangeChange("min", e.target.value)
+                    }
                     className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                   />
                   <input
                     type="number"
                     placeholder="Max"
                     value={priceRange.max}
-                    onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                    onChange={(e) =>
+                      handlePriceRangeChange("max", e.target.value)
+                    }
                     className="w-full px-2.5 py-1.5 text-xs border rounded-lg"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={handleApplyPriceRange}
                     className="flex-1 py-1.5 text-xs text-white bg-red-600 rounded-lg hover:bg-red-700"
                   >
                     Apply
                   </button>
-                  <button 
+                  <button
                     onClick={handleResetPriceRange}
                     className="flex-1 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                   >

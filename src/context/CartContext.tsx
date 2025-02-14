@@ -7,12 +7,20 @@ import {
 } from "react";
 import { Product, CartItem, CartProduct } from "../types.js";
 import { useAuth } from "./AuthContext.js";
-import api from '../services/api.js';
+import api from "../services/api.js";
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, quantity?: number, selectedColor?: string) => Promise<void>;
-  removeItem: (productId: string, selectedColor?: string, itemId?: string) => Promise<void>;
+  addItem: (
+    product: Product,
+    quantity?: number,
+    selectedColor?: string
+  ) => Promise<void>;
+  removeItem: (
+    productId: string,
+    selectedColor?: string,
+    itemId?: string
+  ) => Promise<void>;
   updateQuantity: (productId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   totalItems: number;
@@ -73,53 +81,57 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
       try {
-        console.log('Fetching cart for user:', user.id);
+        console.log("Fetching cart for user:", user.id);
         const response = await api.get(`/carts/${user.id}`);
-        console.log('Cart data received:', response.data);
-        
+        console.log("Cart data received:", response.data);
+
         if (!response.data) {
-          console.error('No data received from cart API');
-          throw new Error('Failed to fetch cart data');
+          console.error("No data received from cart API");
+          throw new Error("Failed to fetch cart data");
         }
 
         // Check if the response has a cart wrapper
         const cartData = response.data.cart;
         if (!cartData) {
-          console.error('No cart data in response:', response.data);
-          throw new Error('Invalid cart data format');
+          console.error("No cart data in response:", response.data);
+          throw new Error("Invalid cart data format");
         }
 
         const cartItems = cartData.items || [];
-        console.log('Cart items from API:', cartItems);
-        
+        console.log("Cart items from API:", cartItems);
+
         // Map the items to ensure they have the correct structure
-        const processedItems = cartItems.map((item: any) => {
-          if (!item.product) {
-            console.error('Cart item missing product data:', item);
-            return null;
-          }
+        const processedItems = cartItems
+          .map((item: any) => {
+            if (!item.product) {
+              console.error("Cart item missing product data:", item);
+              return null;
+            }
 
-          return {
-            _id: item._id,
-            product: {
-              id: item.product.id,
-              name: item.product.name,
-              price: item.product.price,
-              image: item.product.image,
-              category: item.product.category
-            },
-            quantity: item.quantity || 1,
-            selectedColor: item.selectedColor,
-            createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
-            updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date()
-          };
-        }).filter(Boolean); // Remove null items
+            return {
+              _id: item._id,
+              product: {
+                id: item.product.id,
+                name: item.product.name,
+                price: item.product.price,
+                image: item.product.image,
+                category: item.product.category,
+              },
+              quantity: item.quantity || 1,
+              selectedColor: item.selectedColor,
+              createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+              updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date(),
+            };
+          })
+          .filter(Boolean); // Remove null items
 
-        console.log('Setting processed cart items:', processedItems);
+        console.log("Setting processed cart items:", processedItems);
         setItems(processedItems);
       } catch (error) {
         console.error("Error fetching cart:", error);
-        setError(error instanceof Error ? error.message : 'Failed to fetch cart');
+        setError(
+          error instanceof Error ? error.message : "Failed to fetch cart"
+        );
         setItems([]); // Reset items on error
       } finally {
         setLoading(false);
@@ -160,10 +172,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         };
 
         // Immediately update items
-        setItems(prevItems => {
+        setItems((prevItems) => {
           // Check if item with same product and color exists
           const existingItemIndex = prevItems.findIndex(
-            item => item.product.id === product.id && item.selectedColor === selectedColor
+            (item) =>
+              item.product.id === product.id &&
+              item.selectedColor === selectedColor
           );
 
           if (existingItemIndex !== -1) {
@@ -172,7 +186,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             updatedItems[existingItemIndex] = {
               ...updatedItems[existingItemIndex],
               quantity: updatedItems[existingItemIndex].quantity + quantity,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             };
             return updatedItems;
           } else {
@@ -194,9 +208,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       };
 
       // Immediately update UI
-      setItems(prevItems => {
+      setItems((prevItems) => {
         const existingItemIndex = prevItems.findIndex(
-          item => item.product.id === product.id && item.selectedColor === selectedColor
+          (item) =>
+            item.product.id === product.id &&
+            item.selectedColor === selectedColor
         );
 
         if (existingItemIndex !== -1) {
@@ -204,7 +220,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           updatedItems[existingItemIndex] = {
             ...updatedItems[existingItemIndex],
             quantity: updatedItems[existingItemIndex].quantity + quantity,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           };
           return updatedItems;
         } else {
@@ -219,7 +235,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         selectedColor,
       });
 
-      console.log('Add to cart response:', response.data);
+      console.log("Add to cart response:", response.data);
 
       // Update with server response
       if (response.data?.cart?.items) {
@@ -227,8 +243,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error adding item to cart:", error);
-      setError(error instanceof Error ? error.message : "Failed to add item to cart");
-      
+      setError(
+        error instanceof Error ? error.message : "Failed to add item to cart"
+      );
+
       // Revert optimistic update on error
       if (user) {
         const response = await api.get(`/carts/${user.id}`);
@@ -248,26 +266,58 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       if (!user) {
-        throw new Error("User must be logged in to update cart");
+        // Handle local storage cart
+        setItems((prevItems) =>
+          prevItems.map((item) =>
+            item.product.id === productId
+              ? { ...item, quantity, updatedAt: new Date() }
+              : item
+          )
+        );
+        return;
       }
 
-      const response = await api.put(`/carts/${user.id}/items/${productId}`, {
-        quantity,
-      });
+      const itemToUpdate = items.find((item) => item.product.id === productId);
+
+      if (!itemToUpdate) {
+        throw new Error("Item not found in cart");
+      }
+
+      // Optimistic update
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.product.id === productId
+            ? { ...item, quantity, updatedAt: new Date() }
+            : item
+        )
+      );
+
+      const response = await api.put(
+        `/carts/${user.id}/items/${itemToUpdate._id}`,
+        {
+          quantity,
+        }
+      );
 
       if (response.data?.cart?.items) {
         setItems(response.data.cart.items);
       }
     } catch (error) {
       console.error("Error updating quantity:", error);
-      setError(error instanceof Error ? error.message : "Failed to update quantity");
+      setError(
+        error instanceof Error ? error.message : "Failed to update quantity"
+      );
       setItems(currentItems); // Revert to previous items on error
     } finally {
       setLoading(false);
     }
   };
 
-  const removeItem = async (productId: string, selectedColor?: string, itemId?: string) => {
+  const removeItem = async (
+    productId: string,
+    selectedColor?: string,
+    itemId?: string
+  ) => {
     const currentItems = [...items]; // Store current state
     try {
       setLoading(true);
@@ -275,11 +325,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (!user) {
         // If no user, just update localStorage
-        const updatedItems = items.filter(item => 
-          !(item.product.id === productId && 
-            (!selectedColor || item.selectedColor === selectedColor) &&
-            (!itemId || item._id === itemId)
-          )
+        const updatedItems = items.filter(
+          (item) =>
+            !(
+              item.product.id === productId &&
+              (!selectedColor || item.selectedColor === selectedColor) &&
+              (!itemId || item._id === itemId)
+            )
         );
         localStorage.setItem("cart", JSON.stringify(updatedItems));
         setItems(updatedItems);
@@ -287,12 +339,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
 
       // Make API call to remove item
-      const response = await api.delete(`/carts/${user.id}/items/${productId}`, {
-        data: { selectedColor, itemId }
-      });
+      const response = await api.delete(
+        `/carts/${user.id}/items/${productId}`,
+        {
+          data: { selectedColor, itemId },
+        }
+      );
 
       if (!response.data?.cart) {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
 
       // Update with server response
@@ -301,8 +356,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error removing item:", error);
-      setError(error instanceof Error ? error.message : "Failed to remove item");
-      
+      setError(
+        error instanceof Error ? error.message : "Failed to remove item"
+      );
+
       // Revert optimistic update on error
       setItems(currentItems);
     } finally {
@@ -313,7 +370,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = async () => {
     // Store current items for error recovery at the beginning
     const currentItems: CartItem[] = [...items];
-    
+
     try {
       setLoading(true);
       setError(null);

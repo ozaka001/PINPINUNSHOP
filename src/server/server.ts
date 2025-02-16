@@ -36,8 +36,8 @@ const corsOptions = {
     const allowedOrigins = [
       "https://pinpinunshop.netlify.app",
       "http://localhost:5173",
-      "pinpinun.store",
-      "www.pinpinun.store",
+      "https://pinpinun.store",
+      "https://www.pinpinun.store",
     ];
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
